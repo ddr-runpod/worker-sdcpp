@@ -224,7 +224,6 @@ worker-sdcpp/
 │       ├── server-parameters.md  # CLI parameter reference
 │       └── api.md               # API endpoint reference
 ├── Dockerfile              # Multi-stage CUDA build
-├── Dockerfile.dev         # Development build
 ├── requirements.txt        # Python dependencies (includes runpod)
 ├── AGENTS.md               # This file (LLM overview)
 └── README.md               # User documentation

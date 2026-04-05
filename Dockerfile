@@ -40,6 +40,7 @@ FROM nvidia/cuda:12.6.3-cudnn-runtime-ubuntu24.04
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
     libssl3 \
     libuv1 \
     && rm -rf /var/lib/apt/lists/*
