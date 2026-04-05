@@ -22,10 +22,10 @@ WORKDIR /build
 # Clone with blob filter to avoid downloading full history, then checkout specific commit
 RUN git clone --filter=blob:none https://github.com/leejet/stable-diffusion.cpp.git
 
+WORKDIR /build/stable-diffusion.cpp
+
 # Checkout the specific commit (works reliably with filtered clone)
 RUN git checkout ${SD_CPP_COMMIT}
-
-WORKDIR /build/stable-diffusion.cpp
 
 RUN git submodule update --init --recursive
 
