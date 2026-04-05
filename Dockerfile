@@ -19,11 +19,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /build
 
-RUN git clone https://github.com/leejet/stable-diffusion.cpp.git
+# Clone with blob filter to avoid downloading full history, then checkout specific commit
+RUN git clone --filter=blob:none https://github.com/leejet/stable-diffusion.cpp.git
+
+# Checkout the specific commit (works reliably with filtered clone)
+RUN git checkout ${SD_CPP_COMMIT}
 
 WORKDIR /build/stable-diffusion.cpp
-
-RUN git fetch --depth 1 origin ${SD_CPP_COMMIT} && git checkout ${SD_CPP_COMMIT}
 
 RUN git submodule update --init --recursive
 

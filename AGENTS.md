@@ -73,6 +73,10 @@ Example:
 docker build --build-arg SD_CPP_COMMIT=7397dda -t worker-sdcpp:latest .
 ```
 
+## Code Conventions
+
+- Make sure the code documents itsself and comment at the places where the intent would otherwise be unclear.
+
 ## Supported Models
 
 | Model Family | Status | Formats |
