@@ -53,59 +53,8 @@ docker push ddr-runpod/worker-sdcpp:latest
 
 ## Configuration
 
-### Environment Variables
-
 All parameters are configured via environment variables at container startup.
-
-#### Required
-
-| Variable | Description |
-|----------|-------------|
-| `SD_MODEL_PATH` | Absolute path to the main model file on the mounted volume |
-
-#### Server Configuration
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `SD_SERVER_HOST` | `0.0.0.0` | IP address to bind to |
-| `SD_SERVER_PORT` | `8080` | Port to listen on |
-
-#### Model Loading Options
-
-| Variable | CLI Arg | Description |
-|----------|---------|-------------|
-| `SD_CLIP_L_PATH` | `--clip_l` | Path to CLIP-L text encoder (SDXL/SD3/FLUX) |
-| `SD_CLIP_G_PATH` | `--clip_g` | Path to CLIP-G text encoder (SD3) |
-| `SD_T5XXL_PATH` | `--t5xxl` | Path to T5XXL encoder (FLUX/SD3) |
-| `SD_LLM_PATH` | `--llm` | Path to LLM encoder (FLUX.2, Qwen-Image) |
-| `SD_VAE_PATH` | `--vae` | Path to standalone VAE model |
-| `SD_LORA_DIR` | `.` | Directory containing LoRA models |
-| `SD_TYPE` | (auto) | Quantization: `f32`, `f16`, `q8_0`, `q4_0`, `q4_1`, `q5_0`, `q5_1`, `q2_K`, `q3_K`, `q4_K` |
-| `SD_RNG` | `cuda` | RNG backend: `cuda` (SD-WebUI compatible), `cpu` (ComfyUI compatible) |
-| `SD_THREADS` | `-1` | CPU threads (-1 = auto-detect) |
-
-#### Generation Defaults
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `SD_DEFAULT_WIDTH` | `512` | Default image width |
-| `SD_DEFAULT_HEIGHT` | `512` | Default image height |
-| `SD_DEFAULT_STEPS` | `20` | Default sampling steps |
-| `SD_DEFAULT_CFG` | `7.0` | Default CFG scale |
-| `SD_DEFAULT_SAMPLER` | `euler_a` | Default sampling method |
-
-#### Feature Flags
-
-| Variable | CLI Flag | Description |
-|----------|----------|-------------|
-| `SD_VAE_TILING` | `--vae-tiling` | Enable VAE tiling for reduced VRAM |
-| `SD_OFFLOAD_CPU` | `--offload-to-cpu` | Keep weights in RAM, load to VRAM as needed |
-| `SD_FLASH_ATTN` | `--fa` | Enable flash attention |
-| `SD_DIFFUSION_FA` | `--diffusion-fa` | Flash attention for diffusion model only |
-| `SD_MMAP` | `--mmap` | Memory-map model weights |
-| `SD_CLIP_ON_CPU` | `--clip-on-cpu` | Keep CLIP encoders on CPU |
-| `SD_VAE_ON_CPU` | `--vae-on-cpu` | Keep VAE on CPU |
-| `SD_CONTROL_NET_CPU` | `--control-net-cpu` | Keep ControlNet on CPU |
+See [docs/env.md](docs/env.md) for complete reference.
 
 ## Job Input Format
 

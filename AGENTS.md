@@ -86,61 +86,7 @@ docker build --build-arg SD_CPP_COMMIT=7397dda -t worker-sdcpp:latest .
 ## Environment Variables
 
 All static server parameters configured via ENV vars at container startup.
-
-### Required
-
-| Variable | Description |
-|----------|-------------|
-| `SD_MODEL_PATH` | Absolute path to main model on mounted volume |
-
-### Server Configuration
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `SD_SERVER_HOST` | `0.0.0.0` | Bind address |
-| `SD_SERVER_PORT` | `8080` | Listen port |
-
-### Context Options
-
-| Variable | CLI Arg | Description |
-|----------|---------|-------------|
-| `SD_CLIP_L_PATH` | `--clip_l` | CLIP-L encoder (SDXL/SD3/FLUX) |
-| `SD_CLIP_G_PATH` | `--clip_g` | CLIP-G encoder (SD3) |
-| `SD_T5XXL_PATH` | `--t5xxl` | T5XXL encoder (FLUX/SD3) |
-| `SD_LLM_PATH` | `--llm` | LLM encoder (FLUX.2, Qwen-Image) |
-| `SD_DIFFUSION_MODEL_PATH` | `--diffusion-model` | Standalone diffusion model |
-| `SD_VAE_PATH` | `--vae` | Standalone VAE model |
-| `SD_LORA_DIR` | `.` | LoRA models directory |
-| `SD_TYPE` | (auto) | Quantization: `f32`, `f16`, `q8_0`, `q4_0`, etc. |
-| `SD_RNG` | `cuda` | RNG: `cuda` (SD-WebUI), `cpu` (ComfyUI) |
-| `SD_THREADS` | `-1` | CPU threads (-1 = auto) |
-
-### Generation Defaults
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `SD_DEFAULT_WIDTH` | `512` | Default image width |
-| `SD_DEFAULT_HEIGHT` | `512` | Default image height |
-| `SD_DEFAULT_STEPS` | `20` | Default sampling steps |
-| `SD_DEFAULT_CFG` | `7.0` | Default CFG scale |
-| `SD_DEFAULT_SAMPLER` | `euler_a` | Default sampler |
-
-### Feature Flags
-
-| Variable | CLI Flag | Description |
-|----------|----------|-------------|
-| `SD_VAE_TILING` | `--vae-tiling` | Enable VAE tiling |
-| `SD_OFFLOAD_CPU` | `--offload-to-cpu` | CPU offload |
-| `SD_FLASH_ATTN` | `--fa` | Flash attention |
-| `SD_DIFFUSION_FLASH_ATTN` | `--diffusion-fa` | Flash attention in diffusion model only |
-| `SD_MMAP` | `--mmap` | Memory-map weights |
-
-### Handler Configuration
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `SD_SERVER_URL` | `http://127.0.0.1:8080` | URL of the sd-server process |
-| `HANDLER_TIMEOUT` | `300` | Request timeout in seconds |
+See [docs/env.md](docs/env.md) for complete reference.
 
 ## Job Input Format
 
@@ -204,6 +150,7 @@ For `img2img` mode:
 
 | Document | Description |
 |----------|-------------|
+| `docs/env.md` | Environment variable reference |
 | `docs/stable-diffusion.cpp/server-parameters.md` | Complete reference for all sd-server CLI parameters |
 | `docs/stable-diffusion.cpp/api.md` | REST API reference for all endpoints |
 
@@ -220,6 +167,7 @@ worker-sdcpp/
 │   └── healthcheck.py      # Server health check utilities
 ├── tests/                  # Test scripts
 ├── docs/
+│   ├── env.md              # Environment variable reference
 │   └── stable-diffusion.cpp/
 │       ├── server-parameters.md  # CLI parameter reference
 │       └── api.md               # API endpoint reference
