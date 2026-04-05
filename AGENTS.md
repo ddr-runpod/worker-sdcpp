@@ -4,7 +4,7 @@
 
 ## Overview
 
-A RunPod serverless worker using [stable-diffusion.cpp](https://github.com/leejet/stable-diffusion.cpp) for high-performance diffusion model inference. Exposes an A1111-compatible REST API.
+A RunPod serverless worker using [stable-diffusion.cpp](https://github.com/leejet/stable-diffusion.cpp) for high-performance diffusion model inference. Uses the RunPod SDK to process queue-based jobs.
 
 ## Architecture
 
@@ -12,9 +12,16 @@ A RunPod serverless worker using [stable-diffusion.cpp](https://github.com/leeje
 ┌─────────────────────────────────────────────────────────────────┐
 │  RunPod Container                                                │
 │  ┌─────────────────────────────────────────────────────────┐    │
+│  │  Python Handler (runpod.serverless)                     │    │
+│  │  - Receives jobs from RunPod queue                       │    │
+│  │  - Proxies requests to sd-server                         │    │
+│  └─────────────────────────────────────────────────────────┘    │
+│                              ▲                                   │
+│                              │                                   │
+│  ┌─────────────────────────────────────────────────────────┐    │
 │  │  sd-server (stable-diffusion.cpp)                       │    │
 │  │  - Model loaded once at startup (from network volume)   │    │
-│  │  - Exposes A1111-compatible REST API on port 8080      │    │
+│  │  - A1111-compatible REST API on port 8080              │    │
 │  │  - Sequential request processing (mutex-protected)      │    │
 │  └─────────────────────────────────────────────────────────┘    │
 │                              ▲                                   │
@@ -32,7 +39,8 @@ A RunPod serverless worker using [stable-diffusion.cpp](https://github.com/leeje
 
 | Decision | Rationale |
 |----------|-----------|
-| Use `sd-server` over handler pattern | Model stays loaded in memory for fast subsequent requests |
+| RunPod SDK handler | Required for queue-based serverless endpoints |
+| sd-server backend | Model stays loaded in memory for fast subsequent requests |
 | One worker per model | sd-server does not support runtime model switching |
 | Network volume for models | Avoids committing to specific models; allows model updates without redeployment |
 | A1111-compatible API | Wide tool compatibility (ComfyUI, InvokeAI, etc.) |
@@ -44,6 +52,7 @@ A RunPod serverless worker using [stable-diffusion.cpp](https://github.com/leeje
 |-----------|------------|-------|
 | Inference Engine | [stable-diffusion.cpp](https://github.com/leejet/stable-diffusion.cpp) | Pure C/C++, ggml-based |
 | Server Component | `sd-server` (from stable-diffusion.cpp) | HTTP API server |
+| Handler SDK | [runpod-python](https://github.com/runpod/runpod-python) | Queue job processing |
 | GPU Backend | CUDA (CUBLAS) | Primary target |
 | Container Base | `nvidia/cuda:12.6.3-cudnn-devel-ubuntu24.04` | Multi-stage build |
 
@@ -52,6 +61,17 @@ A RunPod serverless worker using [stable-diffusion.cpp](https://github.com/leeje
 | Flag | Value | Rationale |
 |------|-------|------------|
 | `-DSD_SERVER_BUILD_FRONTEND` | `OFF` | Frontend is not needed for serverless worker; reduces build time and binary size |
+
+### Build Arguments
+
+| Argument | Default | Description |
+|----------|---------|-------------|
+| `SD_CPP_COMMIT` | `7397dda` | Git commit hash of stable-diffusion.cpp for reproducible builds |
+
+Example:
+```bash
+docker build --build-arg SD_CPP_COMMIT=7397dda -t worker-sdcpp:latest .
+```
 
 ## Supported Models
 
@@ -115,6 +135,39 @@ All static server parameters configured via ENV vars at container startup.
 | `SD_DIFFUSION_FLASH_ATTN` | `--diffusion-fa` | Flash attention in diffusion model only |
 | `SD_MMAP` | `--mmap` | Memory-map weights |
 
+### Handler Configuration
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SD_SERVER_URL` | `http://127.0.0.1:8080` | URL of the sd-server process |
+| `HANDLER_TIMEOUT` | `300` | Request timeout in seconds |
+
+## Job Input Format
+
+Jobs submitted to RunPod queue should have this structure:
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `mode` | string | `"txt2img"` | Generation mode: `"txt2img"` or `"img2img"` |
+| `prompt` | string | - | Positive prompt (required) |
+| `negative_prompt` | string | `""` | Negative prompt |
+| `width` | int | `512` | Image width |
+| `height` | int | `512` | Image height |
+| `steps` | int | `20` | Sampling steps |
+| `cfg_scale` | float | `7.0` | CFG scale |
+| `seed` | int | `-1` | Random seed |
+| `sampler_name` | string | `"euler_a"` | Sampler name |
+| `scheduler` | string | `"default"` | Scheduler name |
+
+For `img2img` mode:
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `init_images` | array | List of base64-encoded images |
+| `denoising_strength` | float | Denoising strength |
+| `mask` | string | Optional base64-encoded mask |
+| `extra_images` | array | Optional list of base64-encoded reference images |
+
 ## API Endpoints
 
 ### A1111-Compatible
@@ -159,8 +212,12 @@ All static server parameters configured via ENV vars at container startup.
 ```
 worker-sdcpp/
 ├── scripts/
-│   └── startup.sh          # Entry point: launches sd-server
-├── src/                    # Python utilities (testing/healthcheck)
+│   └── startup.sh          # Entry point: launches sd-server then handler
+├── src/
+│   ├── __init__.py         # Exports handler, client, healthcheck
+│   ├── handler.py          # RunPod handler function (runpod.serverless)
+│   ├── client.py           # Python client for sd-server API
+│   └── healthcheck.py      # Server health check utilities
 ├── tests/                  # Test scripts
 ├── docs/
 │   └── stable-diffusion.cpp/
@@ -168,7 +225,7 @@ worker-sdcpp/
 │       └── api.md               # API endpoint reference
 ├── Dockerfile              # Multi-stage CUDA build
 ├── Dockerfile.dev         # Development build
-├── requirements.txt        # Python dependencies
+├── requirements.txt        # Python dependencies (includes runpod)
 ├── AGENTS.md               # This file (LLM overview)
 └── README.md               # User documentation
 ```
@@ -177,5 +234,6 @@ worker-sdcpp/
 
 - [stable-diffusion.cpp](https://github.com/leejet/stable-diffusion.cpp)
 - [stable-diffusion-cpp-python](https://github.com/william-murray1204/stable-diffusion-cpp-python)
+- [Runpod Documentation Overview](https://docs.runpod.io/llms.txt)
 - [RunPod Serverless](https://docs.runpod.io/serverless)
 - [A1111 API](https://github.com/AUTOMATIC1111/stable-diffusion-webui/wiki/API)

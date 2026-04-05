@@ -69,4 +69,21 @@ echo "Starting sd-server with arguments:"
 echo "${SERVER_ARGS[@]}"
 echo ""
 
-exec sd-server "${SERVER_ARGS[@]}"
+sd-server "${SERVER_ARGS[@]}" &
+SERVER_PID=$!
+
+export SD_SERVER_URL="http://127.0.0.1:${SD_SERVER_PORT:-8080}"
+
+echo "Waiting for sd-server to be ready..."
+until curl -sf "${SD_SERVER_URL}/sdapi/v1/sd-models" > /dev/null 2>&1; do
+    if ! kill -0 "$SERVER_PID" 2>/dev/null; then
+        echo "sd-server process died unexpectedly"
+        exit 1
+    fi
+    echo "Waiting for server..."
+    sleep 2
+done
+
+echo "sd-server is ready, starting handler..."
+
+exec python -m src.handler

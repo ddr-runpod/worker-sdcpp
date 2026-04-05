@@ -1,6 +1,6 @@
 # RunPod Worker for stable-diffusion.cpp
 
-A RunPod serverless worker using [stable-diffusion.cpp](https://github.com/leejet/stable-diffusion.cpp) for high-performance diffusion model inference. Exposes an A1111-compatible REST API for seamless integration with ComfyUI, InvokeAI, and other tools.
+A RunPod serverless worker using [stable-diffusion.cpp](https://github.com/leejet/stable-diffusion.cpp) for high-performance diffusion model inference. Uses the RunPod SDK to process queue-based jobs and forwards them to an A1111-compatible REST API server.
 
 **Repository:** https://github.com/ddr-runpod/worker-sdcpp
 
@@ -26,7 +26,11 @@ A RunPod serverless worker using [stable-diffusion.cpp](https://github.com/leeje
 git clone https://github.com/ddr-runpod/worker-sdcpp.git
 cd worker-sdcpp
 
-docker build --platform linux/amd64 -t ddr-runpod/worker-sdcpp:latest .
+# Build with specific stable-diffusion.cpp commit (optional, defaults to 7397dda)
+docker build --platform linux/amd64 \
+  --build-arg SD_CPP_COMMIT=7397dda \
+  -t ddr-runpod/worker-sdcpp:latest .
+
 docker push ddr-runpod/worker-sdcpp:latest
 ```
 
@@ -102,6 +106,77 @@ All parameters are configured via environment variables at container startup.
 | `SD_CLIP_ON_CPU` | `--clip-on-cpu` | Keep CLIP encoders on CPU |
 | `SD_VAE_ON_CPU` | `--vae-on-cpu` | Keep VAE on CPU |
 | `SD_CONTROL_NET_CPU` | `--control-net-cpu` | Keep ControlNet on CPU |
+
+## Job Input Format
+
+Jobs are submitted to the RunPod queue with a JSON payload containing the following structure:
+
+### Common Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `mode` | string | `"txt2img"` | Generation mode: `"txt2img"` or `"img2img"` |
+| `prompt` | string | - | Positive prompt (required) |
+| `negative_prompt` | string | `""` | Negative prompt |
+| `width` | int | `512` | Image width |
+| `height` | int | `512` | Image height |
+| `steps` | int | `20` | Sampling steps |
+| `cfg_scale` | float | `7.0` | CFG scale |
+| `seed` | int | `-1` | Random seed (-1 for random) |
+| `sampler_name` | string | `"euler_a"` | Sampler name |
+| `scheduler` | string | `"default"` | Scheduler name |
+
+### txt2img Example
+
+```json
+{
+  "mode": "txt2img",
+  "prompt": "a beautiful sunset over mountains, cinematic, highly detailed",
+  "negative_prompt": "blurry, low quality, distorted",
+  "width": 1024,
+  "height": 768,
+  "steps": 25,
+  "cfg_scale": 7.5,
+  "seed": 12345,
+  "sampler_name": "euler_a",
+  "scheduler": "karras"
+}
+```
+
+### img2img Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `init_images` | array | - | List of base64-encoded images (required) |
+| `denoising_strength` | float | `0.75` | Denoising strength |
+| `mask` | string | - | Base64-encoded mask (optional, for inpainting) |
+| `extra_images` | array | - | List of base64-encoded reference images (optional) |
+
+### img2img Example
+
+```json
+{
+  "mode": "img2img",
+  "prompt": "make it blue sky",
+  "init_images": ["base64-encoded-image"],
+  "denoising_strength": 0.6,
+  "steps": 25,
+  "seed": -1
+}
+```
+
+### img2img with extra_images (ControlNet style)
+
+```json
+{
+  "mode": "img2img",
+  "prompt": "a cat sitting on a chair",
+  "init_images": ["base64-encoded-image"],
+  "extra_images": ["base64-encoded-pose-image"],
+  "denoising_strength": 0.7,
+  "steps": 25
+}
+```
 
 ## API Reference
 

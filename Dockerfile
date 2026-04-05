@@ -3,6 +3,8 @@
 
 FROM nvidia/cuda:12.6.3-cudnn-devel-ubuntu24.04 AS builder
 
+ARG SD_CPP_COMMIT=7397dda
+
 ENV DEBIAN_FRONTEND=noninteractive
 ENV MAKEFLAGS="-j$(nproc)"
 
@@ -17,9 +19,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /build
 
-RUN git clone --depth 1 https://github.com/leejet/stable-diffusion.cpp.git
+RUN git clone https://github.com/leejet/stable-diffusion.cpp.git
 
 WORKDIR /build/stable-diffusion.cpp
+
+RUN git fetch --depth 1 origin ${SD_CPP_COMMIT} && git checkout ${SD_CPP_COMMIT}
 
 RUN git submodule update --init --recursive
 
