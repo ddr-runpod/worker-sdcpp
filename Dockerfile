@@ -32,7 +32,7 @@ RUN git submodule update --init --recursive
 RUN cmake -B build \
     -DSD_BUILD_SERVER=ON \
     -DSD_SERVER_BUILD_FRONTEND=OFF \
-    -DSD_CUBLAS=ON \
+    -DSD_CUDA=ON \
     -DCMAKE_BUILD_TYPE=Release
 
 RUN cmake --build build --config Release --parallel
@@ -51,7 +51,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* \
     && ln -sf python3 /usr/bin/python
 
-COPY --from=builder /build/stable-diffusion.cpp/build/sd-server /usr/local/bin/
+COPY --from=builder /build/stable-diffusion.cpp/build/bin/sd-server /usr/local/bin/
 
 COPY requirements.txt /tmp/requirements.txt
 RUN pip install --no-cache-dir -r /tmp/requirements.txt
