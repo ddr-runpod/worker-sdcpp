@@ -48,13 +48,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     python3 \
     python3-pip \
+    python3-venv \
     && rm -rf /var/lib/apt/lists/* \
     && ln -sf python3 /usr/bin/python
+
+# Ubuntu 24.04 marks the system Python as externally managed (PEP 668),
+# so install Python dependencies into a dedicated venv instead of /usr.
+ENV VIRTUAL_ENV=/opt/venv
+ENV PATH="${VIRTUAL_ENV}/bin:${PATH}"
 
 COPY --from=builder /build/stable-diffusion.cpp/build/bin/sd-server /usr/local/bin/
 
 COPY requirements.txt /tmp/requirements.txt
-RUN pip install --no-cache-dir -r /tmp/requirements.txt
+RUN python3 -m venv "${VIRTUAL_ENV}" \
+    && pip install --no-cache-dir -r /tmp/requirements.txt
 
 COPY src/ /src/
 
