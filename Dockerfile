@@ -48,12 +48,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     python3 \
     python3-pip \
-    python3-venv \
     && rm -rf /var/lib/apt/lists/* \
     && ln -sf python3 /usr/bin/python
-
-RUN python3 -m venv /opt/venv
-ENV PATH="/opt/venv/bin:$PATH"
 
 COPY --from=builder /build/stable-diffusion.cpp/build/sd-server /usr/local/bin/
 

@@ -75,7 +75,8 @@ docker build --build-arg SD_CPP_COMMIT=7397dda -t worker-sdcpp:latest .
 
 ## Code Conventions
 
-- Make sure the code documents itsself and comment at the places where the intent would otherwise be unclear.
+- Make sure the code documents itself as in the Clean Code principles and comment it at the places where the intent would otherwise be unclear.
+
 
 ## Supported Models
 
