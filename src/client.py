@@ -8,6 +8,14 @@ from PIL import Image
 class SDClient:
     def __init__(self, base_url: str = "http://localhost:8080"):
         self.base_url = base_url.rstrip("/")
+        self._session = requests.Session()
+        self._session.headers.update({"Content-Type": "application/json"})
+
+    def _request(self, method: str, path: str, **kwargs) -> requests.Response:
+        url = f"{self.base_url}{path}"
+        response = self._session.request(method, url, **kwargs)
+        response.raise_for_status()
+        return response
 
     def txt2img(
         self,
@@ -38,9 +46,7 @@ class SDClient:
         if lora:
             payload["lora"] = lora
 
-        response = requests.post(f"{self.base_url}/sdapi/v1/txt2img", json=payload)
-        response.raise_for_status()
-        return response.json()
+        return self._request("POST", "/sdapi/v1/txt2img", json=payload).json()
 
     def img2img(
         self,
@@ -76,39 +82,25 @@ class SDClient:
         if lora:
             payload["lora"] = lora
 
-        response = requests.post(f"{self.base_url}/sdapi/v1/img2img", json=payload)
-        response.raise_for_status()
-        return response.json()
+        return self._request("POST", "/sdapi/v1/img2img", json=payload).json()
 
     def get_samplers(self) -> List[Dict[str, Any]]:
-        response = requests.get(f"{self.base_url}/sdapi/v1/samplers")
-        response.raise_for_status()
-        return response.json()
+        return self._request("GET", "/sdapi/v1/samplers").json()
 
     def get_schedulers(self) -> List[Dict[str, Any]]:
-        response = requests.get(f"{self.base_url}/sdapi/v1/schedulers")
-        response.raise_for_status()
-        return response.json()
+        return self._request("GET", "/sdapi/v1/schedulers").json()
 
     def get_loras(self) -> List[Dict[str, str]]:
-        response = requests.get(f"{self.base_url}/sdapi/v1/loras")
-        response.raise_for_status()
-        return response.json()
+        return self._request("GET", "/sdapi/v1/loras").json()
 
     def refresh_loras(self) -> Dict[str, bool]:
-        response = requests.post(f"{self.base_url}/sdapi/v1/refresh-loras")
-        response.raise_for_status()
-        return response.json()
+        return self._request("POST", "/sdapi/v1/refresh-loras").json()
 
     def get_sd_models(self) -> List[Dict[str, Any]]:
-        response = requests.get(f"{self.base_url}/sdapi/v1/sd-models")
-        response.raise_for_status()
-        return response.json()
+        return self._request("GET", "/sdapi/v1/sd-models").json()
 
     def get_options(self) -> Dict[str, Any]:
-        response = requests.get(f"{self.base_url}/sdapi/v1/options")
-        response.raise_for_status()
-        return response.json()
+        return self._request("GET", "/sdapi/v1/options").json()
 
     def health_check(self) -> bool:
         try:

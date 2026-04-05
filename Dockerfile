@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     pkg-config \
     libssl-dev \
-    libuv-dev \
+    libuv1-dev \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /build
@@ -35,7 +35,7 @@ RUN cmake -B build \
 
 RUN cmake --build build --config Release --parallel
 
-FROM nvidia/cuda:12.6.3-cudnn-runtime-ubuntu24.04
+FROM nvidia/cuda:12.6.3-cudnn-runtime-ubuntu24.04 AS runtime
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -43,9 +43,22 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     libssl3 \
     libuv1 \
-    && rm -rf /var/lib/apt/lists/*
+    curl \
+    python3 \
+    python3-pip \
+    python3-venv \
+    && rm -rf /var/lib/apt/lists/* \
+    && ln -sf python3 /usr/bin/python
+
+RUN python3 -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
 
 COPY --from=builder /build/stable-diffusion.cpp/build/sd-server /usr/local/bin/
+
+COPY requirements.txt /tmp/requirements.txt
+RUN pip install --no-cache-dir -r /tmp/requirements.txt
+
+COPY src/ /src/
 
 RUN mkdir -p /scripts
 
