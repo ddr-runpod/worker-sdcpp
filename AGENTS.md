@@ -52,7 +52,7 @@ A RunPod serverless worker using [stable-diffusion.cpp](https://github.com/leeje
 |-----------|------------|-------|
 | Inference Engine | [stable-diffusion.cpp](https://github.com/leejet/stable-diffusion.cpp) | Pure C/C++, ggml-based |
 | Server Component | `sd-server` (from stable-diffusion.cpp) | HTTP API server |
-| Handler SDK | [runpod-python](https://github.com/runpod/runpod-python) | Queue job processing |
+| Handler SDK | [runpod-python](https://github.com/runpod/runpod-python) v1.8.2+ | Queue job processing with progress updates |
 | GPU Backend | CUDA (CUBLAS) | Primary target |
 | Container Base | `nvidia/cuda:12.6.3-cudnn-devel-ubuntu24.04` | Multi-stage build |
 
@@ -76,17 +76,6 @@ docker build --build-arg SD_CPP_COMMIT=7397dda -t worker-sdcpp:latest .
 ## Code Conventions
 
 - Make sure the code documents itself as in the Clean Code principles and comment it at the places where the intent would otherwise be unclear.
-
-
-## Supported Models
-
-| Model Family | Status | Formats |
-|--------------|--------|---------|
-| SD 1.x, SD 2.x, SDXL | ✅ Supported | safetensors, GGUF |
-| SD-Turbo, SDXL-Turbo | ✅ Supported | safetensors, GGUF |
-| SD3/SD3.5 | ⚙️ To verify | Requires clip_l, clip_g, t5xxl |
-| FLUX.1, FLUX.2 | ⚙️ To verify | Requires additional encoders |
-| LoRA Support | ✅ Supported | Hot-reload via API |
 
 ## Environment Variables
 

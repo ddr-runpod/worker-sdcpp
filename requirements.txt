@@ -1,2 +1,4 @@
-requests>=2.31.0
-runpod>=0.17.0
+# used by the Python worker to call the local sd-server HTTP API
+requests>=2.33.0
+# RunPod SDK used to receive and handle serverless jobs
+runpod>=1.8.2

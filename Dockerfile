@@ -1,13 +1,29 @@
 # RunPod Worker for stable-diffusion.cpp
-# Multi-stage build: build sd-server, then package for RunPod
+#
+# This image is built in two stages:
+# 1. builder: clone and compile sd-server with CUDA enabled
+# 2. runtime: copy only the compiled binary plus the Python worker runtime
+#
+# Keeping the native build in a separate stage avoids shipping compilers,
+# headers, and other heavy build tools in the final production image.
 
 FROM nvidia/cuda:12.6.3-cudnn-devel-ubuntu24.04 AS builder
 
+# Pinned stable-diffusion.cpp revision for reproducible builds.
 ARG SD_CPP_COMMIT=7397dda
 
-ENV DEBIAN_FRONTEND=noninteractive
-ENV MAKEFLAGS="-j$(nproc)"
+# Repository URL is configurable to make temporary forks or mirrors easy to test.
+ARG SD_CPP_REPO=https://github.com/leejet/stable-diffusion.cpp.git
 
+# Keep apt non-interactive during Docker builds.
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Native build dependencies:
+# - git: clone the upstream repository
+# - cmake: configure and build the project
+# - build-essential: compiler and standard toolchain
+# - pkg-config: native dependency discovery
+# - libssl-dev / libuv1-dev: development headers and libraries required by sd-server
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     cmake \
@@ -17,72 +33,86 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libuv1-dev \
     && rm -rf /var/lib/apt/lists/*
 
+# All builder-stage work happens under /build.
 WORKDIR /build
 
-# Clone with blob filter to avoid downloading full history, then checkout specific commit
-RUN git clone --filter=blob:none https://github.com/leejet/stable-diffusion.cpp.git
+# Clone the upstream repository, check out the pinned commit,
+# and initialize all required submodules.
+RUN set -eux; \
+    git clone --filter=blob:none "${SD_CPP_REPO}" stable-diffusion.cpp; \
+    cd stable-diffusion.cpp; \
+    git checkout "${SD_CPP_COMMIT}"; \
+    git submodule update --init --recursive
 
-WORKDIR /build/stable-diffusion.cpp
-
-# Checkout the specific commit (works reliably with filtered clone)
-RUN git checkout ${SD_CPP_COMMIT}
-
-RUN git submodule update --init --recursive
-
-RUN cmake -B build \
-    -DSD_BUILD_SERVER=ON \
-    -DSD_SERVER_BUILD_FRONTEND=OFF \
-    -DSD_CUDA=ON \
-    -DCMAKE_BUILD_TYPE=Release
-
-RUN cmake --build build --config Release --parallel
+# Build sd-server with CUDA enabled.
+#
+# Important: CMake is invoked with -S . after changing into the repository
+# so it uses the actual project root containing CMakeLists.txt.
+RUN set -eux; \
+    cd /build/stable-diffusion.cpp; \
+    cmake -S . -B build \
+        -DSD_BUILD_SERVER=ON \
+        -DSD_SERVER_BUILD_FRONTEND=OFF \
+        -DSD_CUDA=ON \
+        -DCMAKE_BUILD_TYPE=Release; \
+    cmake --build build --parallel "$(nproc)"; \
+    test -x build/bin/sd-server
 
 FROM nvidia/cuda:12.6.3-cudnn-runtime-ubuntu24.04 AS runtime
 
-ENV DEBIAN_FRONTEND=noninteractive
+# Runtime environment:
+# - VIRTUAL_ENV / PATH: isolated Python environment managed by uv
+# - SD_* defaults: sensible server defaults that can still be overridden at deploy time
+ENV DEBIAN_FRONTEND=noninteractive \
+    VIRTUAL_ENV=/opt/venv \
+    PATH="/opt/venv/bin:/usr/local/bin:${PATH}" \
+    SD_SERVER_HOST=0.0.0.0 \
+    SD_SERVER_PORT=8080 \
+    SD_LORA_DIR=/models \
+    SD_RNG=cuda \
+    SD_DEFAULT_WIDTH=512 \
+    SD_DEFAULT_HEIGHT=512 \
+    SD_DEFAULT_STEPS=20 \
+    SD_DEFAULT_CFG=7.0 \
+    SD_DEFAULT_SAMPLER=euler_a
 
+# Runtime-only packages:
+# - bash: required by the container entrypoint script
+# - curl: used by readiness checks
+# - libssl3 / libuv1: shared libraries needed by sd-server
+# - python3: required to run the worker process
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    git \
+    bash \
+    curl \
     libssl3 \
     libuv1 \
-    curl \
     python3 \
-    python3-pip \
-    python3-venv \
-    && rm -rf /var/lib/apt/lists/* \
-    && ln -sf python3 /usr/bin/python
+    && rm -rf /var/lib/apt/lists/*
 
-# Ubuntu 24.04 marks the system Python as externally managed (PEP 668),
-# so install Python dependencies into a dedicated venv instead of /usr.
-ENV VIRTUAL_ENV=/opt/venv
-ENV PATH="${VIRTUAL_ENV}/bin:${PATH}"
+# Copy uv from its official container image so Python dependencies can be
+# installed into a dedicated virtual environment without bringing in pip tooling.
+COPY --from=ghcr.io/astral-sh/uv:0.7.2 /uv /uvx /bin/
 
-COPY --from=builder /build/stable-diffusion.cpp/build/bin/sd-server /usr/local/bin/
+# Copy only the compiled sd-server binary from the builder stage.
+COPY --from=builder /build/stable-diffusion.cpp/build/bin/sd-server /usr/local/bin/sd-server
 
+# Copy dependency manifest first to preserve Docker layer caching when only app code changes.
 COPY requirements.txt /tmp/requirements.txt
-RUN python3 -m venv "${VIRTUAL_ENV}" \
-    && pip install --no-cache-dir -r /tmp/requirements.txt
 
+# Create the virtual environment and install Python dependencies.
+RUN set -eux; \
+    uv venv "${VIRTUAL_ENV}"; \
+    uv pip install --no-cache -r /tmp/requirements.txt; \
+    rm -f /tmp/requirements.txt
+
+# Copy the worker code and the startup script.
 COPY src/ /src/
+COPY --chmod=755 scripts/startup.sh /scripts/startup.sh
 
-RUN mkdir -p /scripts
-
-COPY scripts/startup.sh /scripts/startup.sh
-RUN chmod +x /scripts/startup.sh
-
-ENV SD_SERVER_HOST=0.0.0.0
-ENV SD_SERVER_PORT=8080
-ENV SD_LORA_DIR=/models
-ENV SD_RNG=cuda
-ENV SD_THREADS=-1
-ENV SD_DEFAULT_WIDTH=512
-ENV SD_DEFAULT_HEIGHT=512
-ENV SD_DEFAULT_STEPS=20
-ENV SD_DEFAULT_CFG=7.0
-ENV SD_DEFAULT_SAMPLER=euler_a
-
+# sd-server listens on port 8080 by default.
 EXPOSE 8080
 
+# The startup script launches sd-server, waits for it to become ready,
+# and then starts the Python handler.
 WORKDIR /
-
 ENTRYPOINT ["/bin/bash", "/scripts/startup.sh"]
