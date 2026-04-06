@@ -80,12 +80,14 @@ ENV DEBIAN_FRONTEND=noninteractive \
 # - bash: required by the container entrypoint script
 # - curl: used by readiness checks
 # - libssl3 / libuv1: shared libraries needed by sd-server
+# - libgomp1: GNU OpenMP runtime required by sd-server
 # - python3: required to run the worker process
 RUN apt-get update && apt-get install -y --no-install-recommends \
     bash \
     curl \
     libssl3 \
     libuv1 \
+    libgomp1 \
     python3 \
     && rm -rf /var/lib/apt/lists/*
 
