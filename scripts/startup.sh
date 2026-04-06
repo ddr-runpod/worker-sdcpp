@@ -65,6 +65,8 @@ SERVER_ARGS+=("--sampling-method" "${SD_DEFAULT_SAMPLER:-euler_a}")
 [[ "$SD_VAE_ON_CPU" == "1" ]] && SERVER_ARGS+=("--vae-on-cpu")
 [[ "$SD_CONTROL_NET_CPU" == "1" ]] && SERVER_ARGS+=("--control-net-cpu")
 
+SERVER_ARGS+=("--verbose")
+
 echo "Starting sd-server with arguments:"
 echo "${SERVER_ARGS[@]}"
 echo ""

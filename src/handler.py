@@ -11,7 +11,8 @@ def handler(job: dict) -> dict:
     job_input = job.get("input", {})
     job_id = job.get("id", "unknown")
 
-    mode = job_input.get("mode", "txt2img")
+    request_payload = dict(job_input)
+    mode = request_payload.pop("mode", "txt2img")
 
     runpod.serverless.progress_update(job, f"Starting {mode} generation")
 
@@ -20,7 +21,7 @@ def handler(job: dict) -> dict:
     try:
         response = requests.post(
             f"{SD_SERVER_URL}{endpoint}",
-            json=job_input,
+            json=request_payload,
             timeout=REQUEST_TIMEOUT,
         )
         response.raise_for_status()
