@@ -155,10 +155,8 @@ worker-sdcpp/
 ├── scripts/
 │   └── startup.sh          # Entry point: launches sd-server then handler
 ├── src/
-│   ├── __init__.py         # Exports handler, wait_for_server
-│   ├── handler.py          # RunPod handler function (runpod.serverless)
-│   └── healthcheck.py      # Server readiness check
-├── tests/                  # Test scripts
+│   ├── __init__.py         # Exports handler
+│   └── handler.py          # RunPod handler function (runpod.serverless)
 ├── docs/
 │   ├── env.md              # Environment variable reference
 │   └── stable-diffusion.cpp/
