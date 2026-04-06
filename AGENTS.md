@@ -110,26 +110,8 @@ For `img2img` mode:
 
 ## API Endpoints
 
-### A1111-Compatible
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/sdapi/v1/txt2img` | POST | Text-to-image |
-| `/sdapi/v1/img2img` | POST | Image-to-image with mask |
-| `/sdapi/v1/loras` | GET | List LoRA models |
-| `/sdapi/v1/refresh-loras` | POST | Refresh LoRA cache |
-| `/sdapi/v1/samplers` | GET | List samplers |
-| `/sdapi/v1/schedulers` | GET | List schedulers |
-| `/sdapi/v1/sd-models` | GET | Get current model info |
-| `/sdapi/v1/options` | GET | Get options |
-
-### OpenAI-Compatible
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/v1/models` | GET | List models |
-| `/v1/images/generations` | POST | Text-to-image |
-| `/v1/images/edits` | POST | Image editing/inpainting |
+The sd-server exposes A1111-compatible and OpenAI-compatible REST APIs.
+See [docs/stable-diffusion.cpp/api.md](docs/stable-diffusion.cpp/api.md) for complete reference.
 
 ## Known Limitations
 

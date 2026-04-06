@@ -69,10 +69,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     SD_SERVER_HOST=0.0.0.0 \
     SD_SERVER_PORT=8080 \
     SD_RNG=cuda \
-    SD_DEFAULT_WIDTH=512 \
-    SD_DEFAULT_HEIGHT=512 \
-    SD_DEFAULT_STEPS=20 \
-    SD_DEFAULT_CFG=7.0 \
+    SD_OFFLOAD_CPU=1 \
     SD_FLASH_ATTN=1
 
 # Runtime-only packages:
