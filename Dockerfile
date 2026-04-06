@@ -68,13 +68,12 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PATH="/opt/venv/bin:/usr/local/bin:${PATH}" \
     SD_SERVER_HOST=0.0.0.0 \
     SD_SERVER_PORT=8080 \
-    SD_LORA_DIR=/models \
     SD_RNG=cuda \
     SD_DEFAULT_WIDTH=512 \
     SD_DEFAULT_HEIGHT=512 \
     SD_DEFAULT_STEPS=20 \
     SD_DEFAULT_CFG=7.0 \
-    SD_DEFAULT_SAMPLER=euler_a
+    SD_FLASH_ATTN=1
 
 # Runtime-only packages:
 # - bash: required by the container entrypoint script
