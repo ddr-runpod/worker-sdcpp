@@ -8,32 +8,13 @@ A RunPod serverless worker using [stable-diffusion.cpp](https://github.com/leeje
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│  RunPod Container                                                │
-│  ┌─────────────────────────────────────────────────────────┐    │
-│  │  Python Handler (runpod.serverless)                     │    │
-│  │  - Receives jobs from RunPod queue                       │    │
-│  │  - Proxies requests to sd-server                         │    │
-│  └─────────────────────────────────────────────────────────┘    │
-│                              ▲                                   │
-│                              │                                   │
-│  ┌─────────────────────────────────────────────────────────┐    │
-│  │  sd-server (stable-diffusion.cpp)                       │    │
-│  │  - Model loaded once at startup (from network volume)   │    │
-│  │  - A1111-compatible REST API on port 8080              │    │
-│  │  - Sequential request processing (mutex-protected)      │    │
-│  └─────────────────────────────────────────────────────────┘    │
-│                              ▲                                   │
-│                              │                                   │
-│                     RunPod Internal Network                      │
-│                              │                                   │
-│         ┌─────────────────────┴─────────────────────┐          │
-│         │         RunPod Serverless Endpoint         │          │
-│         │   (queues requests → worker container)     │          │
-│         └───────────────────────────────────────────┘          │
-└─────────────────────────────────────────────────────────────────┘
-```
+The worker runs in a RunPod container with two main components:
+
+1. **Python Handler** (`runpod.serverless`): Receives jobs from the RunPod queue and proxies requests to the sd-server backend.
+
+2. **sd-server** (`stable-diffusion.cpp`): Serves an A1111-compatible REST API on port 8080. The model is loaded once at startup from a network volume and processes requests sequentially with mutex protection.
+
+Request flow: RunPod Serverless Endpoint → RunPod Internal Network → sd-server → Python Handler
 
 ### Key Design Decisions
 
@@ -81,32 +62,6 @@ docker build --build-arg SD_CPP_COMMIT=7397dda -t worker-sdcpp:latest .
 
 All static server parameters configured via ENV vars at container startup.
 See [docs/env.md](docs/env.md) for complete reference.
-
-## Job Input Format
-
-Jobs submitted to RunPod queue should have this structure:
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `mode` | string | `"txt2img"` | Generation mode: `"txt2img"` or `"img2img"` |
-| `prompt` | string | - | Positive prompt (required) |
-| `negative_prompt` | string | `""` | Negative prompt |
-| `width` | int | `512` | Image width |
-| `height` | int | `512` | Image height |
-| `steps` | int | `20` | Sampling steps |
-| `cfg_scale` | float | `7.0` | CFG scale |
-| `seed` | int | `-1` | Random seed |
-| `sampler_name` | string | `"euler_a"` | Sampler name |
-| `scheduler` | string | `"default"` | Scheduler name |
-
-For `img2img` mode:
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `init_images` | array | List of base64-encoded images |
-| `denoising_strength` | float | Denoising strength |
-| `mask` | string | Optional base64-encoded mask |
-| `extra_images` | array | Optional list of base64-encoded reference images |
 
 ## API Endpoints
 

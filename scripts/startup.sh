@@ -56,6 +56,7 @@ SERVER_ARGS+=("--steps" "${SD_DEFAULT_STEPS:-20}")
 SERVER_ARGS+=("--cfg-scale" "${SD_DEFAULT_CFG:-7.0}")
 SERVER_ARGS+=("--sampling-method" "${SD_DEFAULT_SAMPLER:-euler_a}")
 
+[[ "$SD_VERBOSE" == "1" ]] && SERVER_ARGS+=("--verbose")
 [[ "$SD_VAE_TILING" == "1" ]] && SERVER_ARGS+=("--vae-tiling")
 [[ "$SD_OFFLOAD_CPU" == "1" ]] && SERVER_ARGS+=("--offload-to-cpu")
 [[ "$SD_FLASH_ATTN" == "1" ]] && SERVER_ARGS+=("--fa")
@@ -64,8 +65,6 @@ SERVER_ARGS+=("--sampling-method" "${SD_DEFAULT_SAMPLER:-euler_a}")
 [[ "$SD_CLIP_ON_CPU" == "1" ]] && SERVER_ARGS+=("--clip-on-cpu")
 [[ "$SD_VAE_ON_CPU" == "1" ]] && SERVER_ARGS+=("--vae-on-cpu")
 [[ "$SD_CONTROL_NET_CPU" == "1" ]] && SERVER_ARGS+=("--control-net-cpu")
-
-SERVER_ARGS+=("--verbose")
 
 echo "Starting sd-server with arguments:"
 echo "${SERVER_ARGS[@]}"

@@ -282,6 +282,7 @@ For container deployment, these parameters map to environment variables:
 |-----------|---------------------|
 | `--listen-ip` | `SD_SERVER_HOST` |
 | `--listen-port` | `SD_SERVER_PORT` |
+| `--verbose` | `SD_VERBOSE` |
 | `--model` | `SD_MODEL_PATH` |
 | `--diffusion-model` | `SD_DIFFUSION_MODEL_PATH` |
 | `--clip_l` | `SD_CLIP_L_PATH` |

@@ -8,6 +8,7 @@ This file documents all environment variables used to configure the stable-diffu
 |--------------|---------|-------------|---------|
 | `SD_SERVER_HOST` | `--listen-ip` | IP address to bind to | `0.0.0.0` |
 | `SD_SERVER_PORT` | `--listen-port` | Port to listen on | `8080` |
+| `SD_VERBOSE` | `--verbose` | Enable verbose debug logging | `false` |
 
 ## Model Loading
 
