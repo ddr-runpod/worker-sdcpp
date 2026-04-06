@@ -46,4 +46,4 @@ def handler(job: dict) -> dict:
 
 
 if __name__ == "__main__":
-    runpod.serverless.start(handler)
+    runpod.serverless.start({"handler": handler})
