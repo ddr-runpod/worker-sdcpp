@@ -77,7 +77,7 @@ SERVER_PID=$!
 export SD_SERVER_URL="http://127.0.0.1:${SD_SERVER_PORT:-8080}"
 
 echo "Waiting for sd-server to be ready..."
-until curl -sf "${SD_SERVER_URL}/sdapi/v1/sd-models" > /dev/null 2>&1; do
+until curl -sf "${SD_SERVER_URL}/sdapi/v1/loras" > /dev/null 2>&1; do
     if ! kill -0 "$SERVER_PID" 2>/dev/null; then
         echo "sd-server process died unexpectedly"
         exit 1
