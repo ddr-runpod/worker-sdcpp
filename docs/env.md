@@ -26,6 +26,24 @@ This file documents all environment variables used to configure the stable-diffu
 | `SD_RNG` | `--rng` | RNG backend (cuda, cpu) |
 | `SD_THREADS` | `--threads` | CPU threads (-1 = auto) |
 
+## RunPod HuggingFace Model Caching
+
+These env vars let you reference models cached via the [RunPod model caching
+feature](https://docs.runpod.io/serverless/development/huggingface-models#use-cached-models).
+They override the corresponding `SD_*` variables when set.
+
+Format: `org/name/filename.gguf`
+
+| Env Variable | Overrides | Description |
+|--------------|-----------|-------------|
+| `RP_MODEL_PATH` | `SD_MODEL_PATH` | Cached HF model for `--model` |
+| `RP_DIFFUSION_MODEL_PATH` | `SD_DIFFUSION_MODEL_PATH` | Cached HF model for `--diffusion-model` |
+| `RP_VAE_PATH` | `SD_VAE_PATH` | Cached HF model for `--vae` |
+| `RP_LLM_PATH` | `SD_LLM_PATH` | Cached HF model for `--llm` |
+
+Each value is resolved to
+`/runpod-volume/huggingface-cache/hub/models--{org}--{name}/snapshots/{hash}/{filename}`.
+
 ## Generation Defaults
 
 | Env Variable | CLI Arg | Description | Default |
