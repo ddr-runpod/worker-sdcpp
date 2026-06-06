@@ -1,3 +1,5 @@
+ARG CUDA_VERSION=12.6.3
+
 # RunPod Worker for stable-diffusion.cpp
 #
 # This image is built in two stages:
@@ -7,10 +9,10 @@
 # Keeping the native build in a separate stage avoids shipping compilers,
 # headers, and other heavy build tools in the final production image.
 
-FROM nvidia/cuda:12.6.3-cudnn-devel-ubuntu24.04 AS builder
+FROM nvidia/cuda:${CUDA_VERSION}-cudnn-devel-ubuntu24.04 AS builder
 
 # Pinned stable-diffusion.cpp revision for reproducible builds.
-ARG SD_CPP_COMMIT=2d40a8b
+ARG SD_CPP_COMMIT=f3fd359
 
 # Repository URL is configurable to make temporary forks or mirrors easy to test.
 ARG SD_CPP_REPO=https://github.com/leejet/stable-diffusion.cpp.git
@@ -58,7 +60,7 @@ RUN set -eux; \
     cmake --build build --parallel "$(nproc)"; \
     test -x build/bin/sd-server
 
-FROM nvidia/cuda:12.6.3-cudnn-runtime-ubuntu24.04 AS runtime
+FROM nvidia/cuda:${CUDA_VERSION}-cudnn-runtime-ubuntu24.04 AS runtime
 
 # Runtime environment:
 # - VIRTUAL_ENV / PATH: isolated Python environment managed by uv
