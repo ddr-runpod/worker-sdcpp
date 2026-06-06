@@ -1,4 +1,4 @@
-ARG CUDA_VERSION=12.6.3
+ARG CUDA_VERSION=12.8.2
 
 # RunPod Worker for stable-diffusion.cpp
 #
