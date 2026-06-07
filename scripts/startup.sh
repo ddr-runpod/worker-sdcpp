@@ -97,7 +97,7 @@ if [[ -n "$RC_LORA_URL" ]]; then
         echo "Waiting for rclone to become available (attempt $i)..." >&2
         sleep 1
     done
-    rclone copy :http:/ /media/loras/ \
+    rclone copy :http: /media/loras/ \
         --http-url "$RC_LORA_URL" \
         --transfers 4 \
         --retries 3 \
