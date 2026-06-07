@@ -80,6 +80,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
 # - libssl3 / libuv1: shared libraries needed by sd-server
 # - libgomp1: GNU OpenMP runtime required by sd-server
 # - python3: required to run the worker process
+# - rclone: cloud storage sync for model/snapshot downloads
 RUN apt-get update && apt-get install -y --no-install-recommends \
     bash \
     curl \
@@ -87,6 +88,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libuv1 \
     libgomp1 \
     python3 \
+    rclone \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy uv from its official container image so Python dependencies can be

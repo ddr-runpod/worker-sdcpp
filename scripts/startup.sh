@@ -78,6 +78,25 @@ resolve_runpod_cache_path() {
 [[ -n "$RP_LLM_PATH" ]] && SD_LLM_PATH=$(resolve_runpod_cache_path "$RP_LLM_PATH")
 [[ -n "$RP_LORA_DIR" ]] && SD_LORA_DIR=$(resolve_runpod_cache_path "$RP_LORA_DIR")
 
+# If RC_LORA_URL is set, mount it as a FUSE filesystem via rclone's :http: remote
+# and point SD_LORA_DIR at the mount point. This takes precedence over both
+# the RP_LORA_DIR cache path and any direct SD_LORA_DIR setting above.
+if [[ -n "$RC_LORA_URL" ]]; then
+    echo "Mounting loras from RC_LORA_URL..."
+    mkdir -p /media/loras
+    rclone mount :http: /media/loras/ \
+        --http-url "$RC_LORA_URL" \
+        --daemon \
+        --vfs-cache-mode full \
+        --vfs-cache-max-age -1 \
+        --dir-cache-time 10m \
+        --vfs-read-chunk-size 64M \
+        --vfs-read-chunk-size-limit 1G \
+        --vfs-read-ahead 256M \
+        --buffer-size 128M
+    SD_LORA_DIR=/media/loras/
+fi
+
 if [[ -n "$SD_MODEL_PATH" ]]; then
     SERVER_ARGS+=("--model" "$SD_MODEL_PATH")
 fi

@@ -22,6 +22,7 @@ This file documents all environment variables used to configure the stable-diffu
 | `SD_LLM_PATH` | `--llm` | LLM encoder (FLUX.2, Qwen-Image) |
 | `SD_VAE_PATH` | `--vae` | Standalone VAE model |
 | `SD_LORA_DIR` | `--lora-model-dir` | Directory containing LoRA models |
+| `RC_LORA_URL` | (none) | HTTP URL to mount as LoRA directory via rclone fuse. Takes precedence over `SD_LORA_DIR` and `RP_LORA_DIR`. |
 | `SD_TYPE` | `--type` | Quantization type (f32, f16, q8_0, q4_0, etc.) |
 | `SD_RNG` | `--rng` | RNG backend (cuda, cpu) |
 | `SD_THREADS` | `--threads` | CPU threads (-1 = auto) |
