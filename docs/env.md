@@ -66,6 +66,7 @@ Each value is resolved to
 | `SD_CLIP_ON_CPU` | `--clip-on-cpu` | Keep CLIP encoders on CPU |
 | `SD_VAE_ON_CPU` | `--vae-on-cpu` | Keep VAE on CPU |
 | `SD_CONTROL_NET_CPU` | `--control-net-cpu` | Keep ControlNet on CPU |
+| `SD_DISABLE_AUTO_RESIZE_REF_IMAGE` | `--disable-auto-resize-ref-image` | Disable auto-resizing reference images | `1` |
 
 ## Handler Configuration
 
