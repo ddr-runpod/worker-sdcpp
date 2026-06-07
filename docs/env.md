@@ -32,7 +32,7 @@ These env vars let you reference models cached via the [RunPod model caching
 feature](https://docs.runpod.io/serverless/development/huggingface-models#use-cached-models).
 They override the corresponding `SD_*` variables when set.
 
-Format: `org/name/filename.gguf`
+Format: `org/name/path` — trailing `/` denotes a directory, otherwise a file
 
 | Env Variable | Overrides | Description |
 |--------------|-----------|-------------|
@@ -40,9 +40,11 @@ Format: `org/name/filename.gguf`
 | `RP_DIFFUSION_MODEL_PATH` | `SD_DIFFUSION_MODEL_PATH` | Cached HF model for `--diffusion-model` |
 | `RP_VAE_PATH` | `SD_VAE_PATH` | Cached HF model for `--vae` |
 | `RP_LLM_PATH` | `SD_LLM_PATH` | Cached HF model for `--llm` |
+| `RP_LORA_DIR` | `SD_LORA_DIR` | Cached HF model directory for `--lora-model-dir` |
 
 Each value is resolved to
-`/runpod-volume/huggingface-cache/hub/models--{org}--{name}/snapshots/{hash}/{filename}`.
+`/runpod-volume/huggingface-cache/hub/models--{org}--{name}/snapshots/{hash}/{subpath}`.
+A trailing `/` denotes a directory (the result gets a trailing `/`); otherwise it is treated as a file.
 
 ## Generation Defaults
 

@@ -6,13 +6,33 @@ SERVER_ARGS=()
 SERVER_ARGS+=("--listen-ip" "${SD_SERVER_HOST:-0.0.0.0}")
 SERVER_ARGS+=("--listen-port" "${SD_SERVER_PORT:-8080}")
 
+dump_runpod_cache_tree() {
+    echo "Contents of /runpod-volume/huggingface-cache/hub/:" >&2
+    find "/runpod-volume/huggingface-cache/hub/" -maxdepth 5 -type f -o -type d 2>/dev/null | head -200 >&2 || true
+}
+
 resolve_runpod_cache_path() {
     local path="$1"
-    IFS='/' read -r org name filename <<< "$path"
-    if [[ -z "$org" || -z "$name" || -z "$filename" || "$path" != "$org/$name/$filename" ]]; then
-        echo "ERROR: RunPod cache path must be in 'org/name/filename' format, got: $path" >&2
+    local is_dir=false
+    [[ "$path" == */ ]] && is_dir=true
+    path="${path%/}"
+
+    local org="${path%%/*}"
+    local rest="${path#*/}"
+    local name="${rest%%/*}"
+    local subpath=""
+    [[ "$rest" == */* ]] && subpath="${rest#*/}"
+
+    if [[ -z "$org" || -z "$name" ]]; then
+        echo "ERROR: RunPod cache path must be in 'org/name/...' format, got: $1" >&2
         exit 1
     fi
+
+    if ! $is_dir && [[ -z "$subpath" ]]; then
+        echo "ERROR: RunPod cache path for a file must include a filename, got: $1" >&2
+        exit 1
+    fi
+
     local cache_dir="/runpod-volume/huggingface-cache/hub/models--${org,,}--${name,,}"
     local refs_file="$cache_dir/refs/main"
     local snapshots_dir="$cache_dir/snapshots"
@@ -25,19 +45,38 @@ resolve_runpod_cache_path() {
         snapshot_hash=$(ls -1 "$snapshots_dir" | sort | head -1)
     fi
     if [[ -z "$snapshot_hash" ]]; then
-        echo "ERROR: RunPod cached model not found for '$path'" >&2
+        echo "ERROR: RunPod cached model not found for '$1'" >&2
         echo "Checked: $cache_dir" >&2
-        echo "Contents of /runpod-volume/huggingface-cache/hub/:" >&2
-        find "/runpod-volume/huggingface-cache/hub/" -maxdepth 5 -type f -o -type d 2>/dev/null | head -200 >&2 || true
+        dump_runpod_cache_tree
         exit 1
     fi
-    echo "$snapshots_dir/$snapshot_hash/$filename"
+
+    local result="$snapshots_dir/$snapshot_hash"
+    [[ -n "$subpath" ]] && result="$result/$subpath"
+    $is_dir && result="$result/"
+
+    if $is_dir; then
+        if [[ ! -d "$result" ]]; then
+            echo "ERROR: RunPod cached model directory not found: $result" >&2
+            dump_runpod_cache_tree
+            exit 1
+        fi
+    else
+        if [[ ! -f "$result" ]]; then
+            echo "ERROR: RunPod cached model file not found: $result" >&2
+            dump_runpod_cache_tree
+            exit 1
+        fi
+    fi
+
+    echo "$result"
 }
 
 [[ -n "$RP_MODEL_PATH" ]] && SD_MODEL_PATH=$(resolve_runpod_cache_path "$RP_MODEL_PATH")
 [[ -n "$RP_DIFFUSION_MODEL_PATH" ]] && SD_DIFFUSION_MODEL_PATH=$(resolve_runpod_cache_path "$RP_DIFFUSION_MODEL_PATH")
 [[ -n "$RP_VAE_PATH" ]] && SD_VAE_PATH=$(resolve_runpod_cache_path "$RP_VAE_PATH")
 [[ -n "$RP_LLM_PATH" ]] && SD_LLM_PATH=$(resolve_runpod_cache_path "$RP_LLM_PATH")
+[[ -n "$RP_LORA_DIR" ]] && SD_LORA_DIR=$(resolve_runpod_cache_path "$RP_LORA_DIR")
 
 if [[ -n "$SD_MODEL_PATH" ]]; then
     SERVER_ARGS+=("--model" "$SD_MODEL_PATH")
