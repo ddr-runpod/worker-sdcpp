@@ -83,8 +83,8 @@ if [[ -n "$SD_THREADS" ]]; then
     SERVER_ARGS+=("--threads" "$SD_THREADS")
 fi
 
-SERVER_ARGS+=("--width" "${SD_DEFAULT_WIDTH:-512}")
-SERVER_ARGS+=("--height" "${SD_DEFAULT_HEIGHT:-512}")
+SERVER_ARGS+=("--width" "${SD_DEFAULT_WIDTH:-1024}")
+SERVER_ARGS+=("--height" "${SD_DEFAULT_HEIGHT:-1024}")
 SERVER_ARGS+=("--steps" "${SD_DEFAULT_STEPS:-20}")
 SERVER_ARGS+=("--cfg-scale" "${SD_DEFAULT_CFG:-7.0}")
 SERVER_ARGS+=("--sampling-method" "${SD_DEFAULT_SAMPLER:-euler_a}")
