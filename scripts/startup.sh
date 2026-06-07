@@ -88,7 +88,7 @@ if [[ -n "$RC_LORA_URL" ]]; then
         --http-url "$RC_LORA_URL" \
         --daemon \
         --vfs-cache-mode full \
-        --vfs-cache-max-age -1 \
+        --vfs-cache-max-age 24h \
         --dir-cache-time 10m \
         --vfs-read-chunk-size 64M \
         --vfs-read-chunk-size-limit 1G \
