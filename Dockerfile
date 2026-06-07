@@ -1,4 +1,5 @@
 ARG CUDA_VERSION=12.8.2
+ARG CUDA_CUDDN_VERSION=12.8.1
 
 # RunPod Worker for stable-diffusion.cpp
 #
@@ -60,7 +61,7 @@ RUN set -eux; \
     cmake --build build --parallel "$(nproc)"; \
     test -x build/bin/sd-server
 
-FROM nvidia/cuda:${CUDA_VERSION}-cudnn-runtime-ubuntu24.04 AS runtime
+FROM nvidia/cuda:${CUDA_CUDDN_VERSION}-cudnn-runtime-ubuntu24.04 AS runtime
 
 # Runtime environment:
 # - VIRTUAL_ENV / PATH: isolated Python environment managed by uv
