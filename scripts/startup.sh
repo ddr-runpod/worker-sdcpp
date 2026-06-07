@@ -78,22 +78,30 @@ resolve_runpod_cache_path() {
 [[ -n "$RP_LLM_PATH" ]] && SD_LLM_PATH=$(resolve_runpod_cache_path "$RP_LLM_PATH")
 [[ -n "$RP_LORA_DIR" ]] && SD_LORA_DIR=$(resolve_runpod_cache_path "$RP_LORA_DIR")
 
-# If RC_LORA_URL is set, mount it as a FUSE filesystem via rclone's :http: remote
-# and point SD_LORA_DIR at the mount point. This takes precedence over both
-# the RP_LORA_DIR cache path and any direct SD_LORA_DIR setting above.
+# If RC_LORA_URL is set, download all LoRA files from the HTTP URL into
+# /media/loras/ using rclone's :http: remote, then point SD_LORA_DIR at the
+# local copy. This takes precedence over both the RP_LORA_DIR cache path
+# and any direct SD_LORA_DIR setting above.
+#
+# Note: We use rclone copy (not mount) because RunPod serverless containers
+# do not support FUSE mounts.
 if [[ -n "$RC_LORA_URL" ]]; then
-    echo "Mounting loras from RC_LORA_URL..."
+    echo "Downloading loras from RC_LORA_URL..."
     mkdir -p /media/loras
-    rclone mount :http: /media/loras/ \
+    # Retry loop for the "Text file busy" race that can occur when the
+    # container overlayfs has not yet fully exposed the rclone binary.
+    for i in 1 2 3; do
+        if rclone version > /dev/null 2>&1; then
+            break
+        fi
+        echo "Waiting for rclone to become available (attempt $i)..." >&2
+        sleep 1
+    done
+    rclone copy :http:/ /media/loras/ \
         --http-url "$RC_LORA_URL" \
-        --daemon \
-        --vfs-cache-mode full \
-        --vfs-cache-max-age 24h \
-        --dir-cache-time 10m \
-        --vfs-read-chunk-size 64M \
-        --vfs-read-chunk-size-limit 1G \
-        --vfs-read-ahead 256M \
-        --buffer-size 128M
+        --transfers 4 \
+        --retries 3 \
+        --verbose
     SD_LORA_DIR=/media/loras/
 fi
 
