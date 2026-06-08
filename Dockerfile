@@ -70,7 +70,6 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PATH="/opt/venv/bin:/usr/local/bin:${PATH}" \
     SD_SERVER_HOST=0.0.0.0 \
     SD_SERVER_PORT=8080 \
-    SD_RNG=cuda \
     SD_OFFLOAD_CPU=1 \
     SD_FLASH_ATTN=1
 
