@@ -177,12 +177,16 @@ export SD_SERVER_URL="http://127.0.0.1:${SD_SERVER_PORT:-8080}"
 
 READY_RETRIES="${SD_READY_RETRIES:-10}"
 READY_INTERVAL="${SD_READY_INTERVAL:-2}"
-READY_URL="${SD_SERVER_URL}/sdapi/v1/loras"
+READY_URL="${SD_SERVER_URL}/sdapi/v1/sd-models"
+LORAS_URL="${SD_SERVER_URL}/sdapi/v1/loras"
 
 echo "Waiting for sd-server to be ready at ${READY_URL}..."
 for attempt in $(seq 1 "$READY_RETRIES"); do
     if curl -sf "$READY_URL" > /dev/null 2>&1; then
-        echo "sd-server is ready, starting handler..."
+        echo "sd-server is ready, initializing LoRA endpoint..."
+        curl -s "$LORAS_URL" > /dev/null 2>&1 || true
+
+        echo "Starting handler..."
         exec python -m src.handler
     fi
 
