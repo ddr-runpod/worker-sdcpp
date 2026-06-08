@@ -12,7 +12,7 @@ ARG CUDA_VERSION=12.8.1
 FROM nvidia/cuda:${CUDA_VERSION}-cudnn-devel-ubuntu24.04 AS builder
 
 # Pinned stable-diffusion.cpp revision for reproducible builds.
-ARG SD_CPP_COMMIT=f3fd359
+ARG SD_CPP_COMMIT=b3d56d0
 
 # Repository URL is configurable to make temporary forks or mirrors easy to test.
 ARG SD_CPP_REPO=https://github.com/leejet/stable-diffusion.cpp.git
