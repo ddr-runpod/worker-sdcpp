@@ -23,6 +23,12 @@ This file documents all environment variables used to configure the stable-diffu
 | `SD_VAE_PATH` | `--vae` | Standalone VAE model |
 | `SD_LORA_DIR` | `--lora-model-dir` | Directory containing LoRA models |
 | `RC_LORA_URL` | (none) | HTTP URL to download LoRA files from at startup via `rclone copy :http:`. Takes precedence over `SD_LORA_DIR` and `RP_LORA_DIR`. |
+| `RC_LORA_S3_BUCKET` | (none) | S3 bucket and optional prefix for LoRA downloads via `rclone copy :s3:` (e.g. `my-bucket/loras/`). Requires `RC_LORA_S3_ENDPOINT`, `RC_LORA_S3_ACCESS_KEY_ID`, and `RC_LORA_S3_SECRET_ACCESS_KEY`. Takes precedence over `SD_LORA_DIR` and `RP_LORA_DIR`. |
+| `RC_LORA_S3_ENDPOINT` | (none) | S3-compatible endpoint URL (e.g. `https://s3api-us-ks-2.runpod.io/`). |
+| `RC_LORA_S3_ACCESS_KEY_ID` | (none) | S3 access key ID. |
+| `RC_LORA_S3_SECRET_ACCESS_KEY` | (none) | S3 secret access key. |
+| `RC_LORA_S3_REGION` | `us-east-1` | S3 region. |
+| `RC_LORA_S3_PROVIDER` | `Other` | rclone `--s3-provider` value. Default `Other` works with RunPod's S3-compatible API; set to `AWS`, `Minio`, `Cloudflare`, `Wasabi`, etc. for other backends. |
 | `SD_TYPE` | `--type` | Quantization type (f32, f16, q8_0, q4_0, etc.) |
 | `SD_RNG` | `--rng` | RNG backend (cuda, cpu) |
 | `SD_THREADS` | `--threads` | CPU threads (-1 = auto) |

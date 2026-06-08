@@ -99,9 +99,37 @@ if [[ -n "$RC_LORA_URL" ]]; then
     done
     rclone copy :http: /media/loras/ \
         --http-url "$RC_LORA_URL" \
-        --transfers 2 \
+        --transfers 3 \
         --retries 3 \
         --verbose
+    SD_LORA_DIR=/media/loras/
+fi
+
+# If RC_LORA_S3_BUCKET is set, download all LoRA files from an S3-compatible
+# endpoint into /media/loras/ using rclone's :s3: remote, then point
+# SD_LORA_DIR at the local copy.  This takes precedence over both the
+# RP_LORA_DIR cache path and any direct SD_LORA_DIR setting above.
+#
+# The default provider is "Other" which works with RunPod's S3-compatible API
+# (https://docs.runpod.io/storage/s3-api).  Set RC_LORA_S3_PROVIDER to e.g.
+# "AWS", "Minio", "Cloudflare", or "Wasabi" for other backends.
+if [[ -n "$RC_LORA_S3_BUCKET" ]]; then
+    echo "Downloading loras from S3-compatible storage..."
+    mkdir -p /media/loras
+    for i in 1 2 3; do
+        if rclone version > /dev/null 2>&1; then
+            break
+        fi
+        echo "Waiting for rclone to become available (attempt $i)..." >&2
+        sleep 1
+    done
+    rclone copy :s3:"$RC_LORA_S3_BUCKET" /media/loras/ \
+        --s3-provider "${RC_LORA_S3_PROVIDER:-Other}" \
+        --s3-endpoint "$RC_LORA_S3_ENDPOINT" \
+        --s3-access-key-id "$RC_LORA_S3_ACCESS_KEY_ID" \
+        --s3-secret-access-key "$RC_LORA_S3_SECRET_ACCESS_KEY" \
+        --s3-region "${RC_LORA_S3_REGION:-us-east-1}" \
+        --transfers 3 --retries 3 --verbose
     SD_LORA_DIR=/media/loras/
 fi
 
