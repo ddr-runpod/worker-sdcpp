@@ -175,16 +175,28 @@ SERVER_PID=$!
 
 export SD_SERVER_URL="http://127.0.0.1:${SD_SERVER_PORT:-8080}"
 
-echo "Waiting for sd-server to be ready..."
-until curl -sf "${SD_SERVER_URL}/sdapi/v1/loras" > /dev/null 2>&1; do
+READY_RETRIES="${SD_READY_RETRIES:-10}"
+READY_INTERVAL="${SD_READY_INTERVAL:-2}"
+READY_URL="${SD_SERVER_URL}/sdapi/v1/loras"
+
+echo "Waiting for sd-server to be ready at ${READY_URL}..."
+for attempt in $(seq 1 "$READY_RETRIES"); do
+    if curl -sf "$READY_URL" > /dev/null 2>&1; then
+        echo "sd-server is ready, starting handler..."
+        exec python -m src.handler
+    fi
+
     if ! kill -0 "$SERVER_PID" 2>/dev/null; then
         echo "sd-server process died unexpectedly"
         exit 1
     fi
-    echo "Waiting for server..."
-    sleep 2
+
+    if [[ "$attempt" -lt "$READY_RETRIES" ]]; then
+        echo "Waiting for server... attempt ${attempt}/${READY_RETRIES}"
+        sleep "$READY_INTERVAL"
+    fi
 done
 
-echo "sd-server is ready, starting handler..."
-
-exec python -m src.handler
+echo "sd-server did not become ready after ${READY_RETRIES} attempts"
+echo "Last checked: ${READY_URL}"
+exit 1
