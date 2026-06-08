@@ -99,7 +99,7 @@ if [[ -n "$RC_LORA_URL" ]]; then
     done
     rclone copy :http: /media/loras/ \
         --http-url "$RC_LORA_URL" \
-        --transfers 4 \
+        --transfers 16 \
         --retries 3 \
         --verbose
     SD_LORA_DIR=/media/loras/
