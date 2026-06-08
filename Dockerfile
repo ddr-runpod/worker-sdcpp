@@ -56,6 +56,7 @@ RUN set -eux; \
         -DSD_BUILD_SERVER=ON \
         -DSD_SERVER_BUILD_FRONTEND=OFF \
         -DSD_CUDA=ON \
+        -DCMAKE_CUDA_ARCHITECTURES="86;89;120" \
         -DCMAKE_BUILD_TYPE=Release; \
     cmake --build build --parallel "$(nproc)"; \
     test -x build/bin/sd-server
