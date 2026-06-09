@@ -109,7 +109,7 @@ RUN set -eux; \
     chmod 755 /usr/bin/rclone; \
     rm -rf rclone.zip rclone-v*/; \
     echo "Installed rclone version:"; \
-    rclone version
+    unset RCLONE_VERSION; rclone version
 
 # Copy uv from its official container image so Python dependencies can be
 # installed into a dedicated virtual environment without bringing in pip tooling.
