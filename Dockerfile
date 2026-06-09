@@ -67,6 +67,7 @@ FROM nvidia/cuda:${CUDA_VERSION}-cudnn-runtime-ubuntu24.04 AS runtime
 # Runtime environment:
 # - VIRTUAL_ENV / PATH: isolated Python environment managed by uv
 # - SD_* defaults: sensible server defaults that can still be overridden at deploy time
+ARG RCLONE_VERSION=v1.74.3
 ENV DEBIAN_FRONTEND=noninteractive \
     VIRTUAL_ENV=/opt/venv \
     PATH="/opt/venv/bin:/usr/local/bin:${PATH}" \
@@ -81,7 +82,6 @@ ENV DEBIAN_FRONTEND=noninteractive \
 # - libssl3 / libuv1: shared libraries needed by sd-server
 # - libgomp1: GNU OpenMP runtime required by sd-server
 # - python3: required to run the worker process
-# - rclone: cloud storage sync for model/snapshot downloads
 RUN apt-get update && apt-get install -y --no-install-recommends \
     bash \
     curl \
@@ -89,8 +89,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libuv1 \
     libgomp1 \
     python3 \
-    rclone \
     && rm -rf /var/lib/apt/lists/*
+
+# Install the pinned rclone release from rclone.org instead of the Ubuntu
+# package, which is often outdated.
+RUN set -eux; \
+    curl -fsSL "https://downloads.rclone.org/${RCLONE_VERSION}/rclone-${RCLONE_VERSION}-linux-amd64.deb" -o /tmp/rclone.deb; \
+    dpkg -i /tmp/rclone.deb; \
+    rm -f /tmp/rclone.deb
 
 # Copy uv from its official container image so Python dependencies can be
 # installed into a dedicated virtual environment without bringing in pip tooling.
