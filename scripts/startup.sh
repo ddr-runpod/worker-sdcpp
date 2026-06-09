@@ -129,6 +129,7 @@ if [[ -n "$RC_LORA_S3_BUCKET" ]]; then
         --s3-access-key-id "$RC_LORA_S3_ACCESS_KEY_ID" \
         --s3-secret-access-key "$RC_LORA_S3_SECRET_ACCESS_KEY" \
         --s3-region "${RC_LORA_S3_REGION:-us-east-1}" \
+        --s3-sign-accept-encoding=false \
         --transfers 3 --retries 3 --verbose
     SD_LORA_DIR=/media/loras/
 fi
