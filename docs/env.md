@@ -29,6 +29,7 @@ This file documents all environment variables used to configure the stable-diffu
 | `RC_LORA_S3_SECRET_ACCESS_KEY` | (none) | S3 secret access key. |
 | `RC_LORA_S3_REGION` | `us-east-1` | S3 region. |
 | `RC_LORA_S3_PROVIDER` | `Other` | rclone `--s3-provider` value. Default `Other` works with RunPod's S3-compatible API; set to `AWS`, `Minio`, `Cloudflare`, `Wasabi`, etc. for other backends. |
+| `RC_TRANSFERS` | `5` | Number of parallel file transfers for rclone operations. |
 | `SD_TYPE` | `--type` | Quantization type (f32, f16, q8_0, q4_0, etc.) |
 | `SD_RNG` | `--rng` | RNG backend (cuda, cpu) |
 | `SD_THREADS` | `--threads` | CPU threads (-1 = auto) |
