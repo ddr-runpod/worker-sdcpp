@@ -77,6 +77,23 @@ resolve_runpod_cache_path() {
     echo "$result"
 }
 
+# Block until the rclone binary is executable. This guards against the
+# "Text file busy" race that can occur when the container overlayfs has not
+# yet fully exposed the binary on a freshly started serverless worker.
+wait_for_rclone() {
+    for i in 1 2 3 4 5; do
+        if rclone version > /dev/null 2>&1; then
+            echo "rclone path: $(which rclone)" >&2
+            echo "rclone version: $(rclone version 2>&1 | head -2)" >&2
+            return 0
+        fi
+        echo "Waiting for rclone to become available (attempt $i)..." >&2
+        sleep 1
+    done
+    echo "ERROR: rclone did not become available in time" >&2
+    exit 1
+}
+
 [[ -n "$RP_MODEL_PATH" ]] && SD_MODEL_PATH=$(resolve_runpod_cache_path "$RP_MODEL_PATH")
 [[ -n "$RP_DIFFUSION_MODEL_PATH" ]] && SD_DIFFUSION_MODEL_PATH=$(resolve_runpod_cache_path "$RP_DIFFUSION_MODEL_PATH")
 [[ -n "$RP_VAE_PATH" ]] && SD_VAE_PATH=$(resolve_runpod_cache_path "$RP_VAE_PATH")
@@ -93,8 +110,7 @@ resolve_runpod_cache_path() {
 if [[ -n "$RC_LORA_URL" ]]; then
     echo "Downloading loras from RC_LORA_URL..."
     mkdir -p /media/loras
-    echo "rclone path: $(which rclone)" >&2
-    echo "rclone version: $(rclone version 2>&1 | head -2)" >&2
+    wait_for_rclone
     rclone copy :http: /media/loras/ \
         --http-url "$RC_LORA_URL" \
         --transfers "${RC_TRANSFERS:-5}" \
@@ -114,8 +130,7 @@ fi
 if [[ -n "$RC_LORA_S3_BUCKET" ]]; then
     echo "Downloading loras from S3-compatible storage..."
     mkdir -p /media/loras
-    echo "rclone path: $(which rclone)" >&2
-    echo "rclone version: $(rclone version 2>&1 | head -2)" >&2
+    wait_for_rclone
     rclone copy :s3:"$RC_LORA_S3_BUCKET" /media/loras/ \
         --s3-provider "${RC_LORA_S3_PROVIDER:-Other}" \
         --s3-endpoint "$RC_LORA_S3_ENDPOINT" \
