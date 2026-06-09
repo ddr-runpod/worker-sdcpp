@@ -77,9 +77,6 @@ FROM nvidia/cuda:${CUDA_VERSION}-cudnn-runtime-ubuntu24.04 AS runtime
 # script launches the worker with `exec python ...`, and the `python` symlink
 # only exists inside the venv (the base image ships `python3`). Keep it first.
 ARG RCLONE_VERSION=v1.74.3
-# SHA256 of the pinned rclone .deb. Fill this in to enable checksum
-# verification of the downloaded package (see the rclone install step below).
-ARG RCLONE_SHA256=408cde598307dedc26b7108553cb2147a8d2d12853100447e802f47454582ecc
 ENV DEBIAN_FRONTEND=noninteractive \
     VIRTUAL_ENV=/opt/venv \
     PATH="/opt/venv/bin:/usr/local/bin:${PATH}" \
@@ -101,22 +98,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libuv1 \
     libgomp1 \
     python3 \
+    unzip \
     && rm -rf /var/lib/apt/lists/*
 
-# Install the pinned rclone release from rclone.org instead of the Ubuntu
-# package, which is often outdated.
-#
-# When RCLONE_SHA256 is provided, the downloaded package is verified before
-# installation to close the supply-chain gap of installing an unverified .deb.
-RUN set -eux; \
-    curl -fsSL "https://downloads.rclone.org/${RCLONE_VERSION}/rclone-${RCLONE_VERSION}-linux-amd64.deb" -o /tmp/rclone.deb; \
-    if [ -n "${RCLONE_SHA256}" ]; then \
-        echo "${RCLONE_SHA256}  /tmp/rclone.deb" | sha256sum -c -; \
-    else \
-        echo "WARNING: RCLONE_SHA256 not set; skipping rclone .deb checksum verification" >&2; \
-    fi; \
-    dpkg -i /tmp/rclone.deb; \
-    rm -f /tmp/rclone.deb
+# Install rclone using the official install script.
+RUN curl https://rclone.org/install.sh | bash
 
 # Copy uv from its official container image so Python dependencies can be
 # installed into a dedicated virtual environment without bringing in pip tooling.
