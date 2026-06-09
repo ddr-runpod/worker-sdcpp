@@ -26,9 +26,9 @@ A RunPod serverless worker using [stable-diffusion.cpp](https://github.com/leeje
 git clone https://github.com/ddr-runpod/worker-sdcpp.git
 cd worker-sdcpp
 
-# Build with specific stable-diffusion.cpp commit (optional, defaults to 7397dda)
+# Build with specific stable-diffusion.cpp commit (optional, defaults to b3d56d0)
 docker build --platform linux/amd64 \
-  --build-arg SD_CPP_COMMIT=7397dda \
+  --build-arg SD_CPP_COMMIT=b3d56d0 \
   -t ddr-runpod/worker-sdcpp:latest .
 
 docker push ddr-runpod/worker-sdcpp:latest
@@ -67,8 +67,8 @@ Jobs are submitted to the RunPod queue with a JSON payload containing the follow
 | `mode` | string | `"txt2img"` | Generation mode: `"txt2img"` or `"img2img"` |
 | `prompt` | string | - | Positive prompt (required) |
 | `negative_prompt` | string | `""` | Negative prompt |
-| `width` | int | `512` | Image width |
-| `height` | int | `512` | Image height |
+| `width` | int | `1024` | Image width |
+| `height` | int | `1024` | Image height |
 | `steps` | int | `20` | Sampling steps |
 | `cfg_scale` | float | `7.0` | CFG scale |
 | `seed` | int | `-1` | Random seed (-1 for random) |

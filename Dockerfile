@@ -38,13 +38,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # All builder-stage work happens under /build.
 WORKDIR /build
 
-# Clone the upstream repository, check out the pinned commit,
-# and initialize all required submodules.
+# Clone the upstream repository, fetch and check out the pinned commit, and
+# initialize all required submodules.
+#
+# We fetch the exact commit explicitly (rather than relying on `git checkout`
+# resolving it from a blobless clone). This is more robust across Git versions
+# for partial clones and keeps both the main tree and submodules shallow.
 RUN set -eux; \
     git clone --filter=blob:none "${SD_CPP_REPO}" stable-diffusion.cpp; \
     cd stable-diffusion.cpp; \
+    git fetch --depth 1 origin "${SD_CPP_COMMIT}"; \
     git checkout "${SD_CPP_COMMIT}"; \
-    git submodule update --init --recursive
+    git submodule update --init --recursive --depth 1
 
 # Build sd-server with CUDA enabled.
 #
@@ -67,7 +72,14 @@ FROM nvidia/cuda:${CUDA_VERSION}-cudnn-runtime-ubuntu24.04 AS runtime
 # Runtime environment:
 # - VIRTUAL_ENV / PATH: isolated Python environment managed by uv
 # - SD_* defaults: sensible server defaults that can still be overridden at deploy time
+#
+# Note: the venv bin directory comes first on PATH on purpose. The startup
+# script launches the worker with `exec python ...`, and the `python` symlink
+# only exists inside the venv (the base image ships `python3`). Keep it first.
 ARG RCLONE_VERSION=v1.74.3
+# SHA256 of the pinned rclone .deb. Fill this in to enable checksum
+# verification of the downloaded package (see the rclone install step below).
+ARG RCLONE_SHA256=408cde598307dedc26b7108553cb2147a8d2d12853100447e802f47454582ecc
 ENV DEBIAN_FRONTEND=noninteractive \
     VIRTUAL_ENV=/opt/venv \
     PATH="/opt/venv/bin:/usr/local/bin:${PATH}" \
@@ -93,8 +105,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Install the pinned rclone release from rclone.org instead of the Ubuntu
 # package, which is often outdated.
+#
+# When RCLONE_SHA256 is provided, the downloaded package is verified before
+# installation to close the supply-chain gap of installing an unverified .deb.
 RUN set -eux; \
     curl -fsSL "https://downloads.rclone.org/${RCLONE_VERSION}/rclone-${RCLONE_VERSION}-linux-amd64.deb" -o /tmp/rclone.deb; \
+    if [ -n "${RCLONE_SHA256}" ]; then \
+        echo "${RCLONE_SHA256}  /tmp/rclone.deb" | sha256sum -c -; \
+    else \
+        echo "WARNING: RCLONE_SHA256 not set; skipping rclone .deb checksum verification" >&2; \
+    fi; \
     dpkg -i /tmp/rclone.deb; \
     rm -f /tmp/rclone.deb
 
@@ -109,10 +129,14 @@ COPY --from=builder /build/stable-diffusion.cpp/build/bin/sd-server /usr/local/b
 COPY requirements.txt /tmp/requirements.txt
 
 # Create the virtual environment and install Python dependencies.
+#
+# The final `test` asserts the venv `python` interpreter exists, since the
+# startup script relies on `python` (not `python3`) being on PATH.
 RUN set -eux; \
     uv venv "${VIRTUAL_ENV}"; \
     uv pip install --no-cache -r /tmp/requirements.txt; \
-    rm -f /tmp/requirements.txt
+    rm -f /tmp/requirements.txt; \
+    test -x "${VIRTUAL_ENV}/bin/python"
 
 # Copy the worker code and the startup script.
 COPY src/ /src/
@@ -120,6 +144,12 @@ COPY --chmod=755 scripts/startup.sh /scripts/startup.sh
 
 # sd-server listens on port 8080 by default.
 EXPOSE 8080
+
+# Container-level health probe reusing the server's readiness endpoint.
+# RunPod serverless ignores HEALTHCHECK, but it is useful for local runs,
+# Docker Compose, and other orchestrators.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=120s --retries=3 \
+    CMD curl -sf "http://127.0.0.1:${SD_SERVER_PORT}/sdapi/v1/sd-models" || exit 1
 
 # The startup script launches sd-server, waits for it to become ready,
 # and then starts the Python handler.

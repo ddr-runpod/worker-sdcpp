@@ -56,12 +56,12 @@ A trailing `/` denotes a directory (the result gets a trailing `/`); otherwise i
 
 ## Generation Defaults
 
-| Env Variable | CLI Arg | Description | Default |
-|--------------|---------|-------------|---------|
-| `SD_DEFAULT_WIDTH` | `--width` | Default image width | `512` |
-| `SD_DEFAULT_HEIGHT` | `--height` | Default image height | `512` |
-| `SD_DEFAULT_STEPS` | `--steps` | Default sampling steps | `20` |
-| `SD_DEFAULT_CFG` | `--cfg-scale` | Default CFG scale | `7.0` |
+| Env Variable | CLI Arg | Description | Default   |
+|--------------|---------|-------------|-----------|
+| `SD_DEFAULT_WIDTH` | `--width` | Default image width | `1024`    |
+| `SD_DEFAULT_HEIGHT` | `--height` | Default image height | `1024`     |
+| `SD_DEFAULT_STEPS` | `--steps` | Default sampling steps | `20`      |
+| `SD_DEFAULT_CFG` | `--cfg-scale` | Default CFG scale | `7.0`     |
 | `SD_DEFAULT_SAMPLER` | `--sampling-method` | Default sampler | `euler_a` |
 
 ## Feature Flags

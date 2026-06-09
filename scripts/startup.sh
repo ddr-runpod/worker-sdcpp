@@ -1,14 +1,18 @@
 #!/bin/bash
-set -e
+set -eo pipefail
+
+# Effective host/port resolved once so every consumer (server args, readiness
+# URL, handler URL) stays in sync and the fallbacks can't drift.
+SD_SERVER_HOST="${SD_SERVER_HOST:-0.0.0.0}"
+SD_SERVER_PORT="${SD_SERVER_PORT:-8080}"
 
 SERVER_ARGS=()
-
-SERVER_ARGS+=("--listen-ip" "${SD_SERVER_HOST:-0.0.0.0}")
-SERVER_ARGS+=("--listen-port" "${SD_SERVER_PORT:-8080}")
+SERVER_ARGS+=("--listen-ip" "$SD_SERVER_HOST")
+SERVER_ARGS+=("--listen-port" "$SD_SERVER_PORT")
 
 dump_runpod_cache_tree() {
     echo "Contents of /runpod-volume/huggingface-cache/hub/:" >&2
-    find "/runpod-volume/huggingface-cache/hub/" -maxdepth 5 -type f -o -type d 2>/dev/null | head -200 >&2 || true
+    find "/runpod-volume/huggingface-cache/hub/" -maxdepth 5 \( -type f -o -type d \) 2>/dev/null | head -200 >&2 || true
 }
 
 resolve_runpod_cache_path() {
@@ -39,7 +43,8 @@ resolve_runpod_cache_path() {
 
     local snapshot_hash=""
     if [[ -f "$refs_file" ]]; then
-        snapshot_hash=$(cat "$refs_file")
+        # Strip any stray whitespace/newlines so the resolved path stays clean.
+        snapshot_hash=$(tr -d '[:space:]' < "$refs_file")
     fi
     if [[ -z "$snapshot_hash" && -d "$snapshots_dir" ]]; then
         snapshot_hash=$(ls -1 "$snapshots_dir" | sort | head -1)
@@ -72,6 +77,21 @@ resolve_runpod_cache_path() {
     echo "$result"
 }
 
+# Block until the rclone binary is executable. This guards against the
+# "Text file busy" race that can occur when the container overlayfs has not
+# yet fully exposed the binary on a freshly started serverless worker.
+wait_for_rclone() {
+    for i in 1 2 3 4 5; do
+        if rclone version > /dev/null 2>&1; then
+            return 0
+        fi
+        echo "Waiting for rclone to become available (attempt $i)..." >&2
+        sleep 1
+    done
+    echo "ERROR: rclone did not become available in time" >&2
+    exit 1
+}
+
 [[ -n "$RP_MODEL_PATH" ]] && SD_MODEL_PATH=$(resolve_runpod_cache_path "$RP_MODEL_PATH")
 [[ -n "$RP_DIFFUSION_MODEL_PATH" ]] && SD_DIFFUSION_MODEL_PATH=$(resolve_runpod_cache_path "$RP_DIFFUSION_MODEL_PATH")
 [[ -n "$RP_VAE_PATH" ]] && SD_VAE_PATH=$(resolve_runpod_cache_path "$RP_VAE_PATH")
@@ -88,15 +108,7 @@ resolve_runpod_cache_path() {
 if [[ -n "$RC_LORA_URL" ]]; then
     echo "Downloading loras from RC_LORA_URL..."
     mkdir -p /media/loras
-    # Retry loop for the "Text file busy" race that can occur when the
-    # container overlayfs has not yet fully exposed the rclone binary.
-    for i in 1 2 3; do
-        if rclone version > /dev/null 2>&1; then
-            break
-        fi
-        echo "Waiting for rclone to become available (attempt $i)..." >&2
-        sleep 1
-    done
+    wait_for_rclone
     rclone copy :http: /media/loras/ \
         --http-url "$RC_LORA_URL" \
         --transfers "${RC_TRANSFERS:-5}" \
@@ -107,22 +119,16 @@ fi
 
 # If RC_LORA_S3_BUCKET is set, download all LoRA files from an S3-compatible
 # endpoint into /media/loras/ using rclone's :s3: remote, then point
-# SD_LORA_DIR at the local copy.  This takes precedence over both the
+# SD_LORA_DIR at the local copy. This takes precedence over both the
 # RP_LORA_DIR cache path and any direct SD_LORA_DIR setting above.
 #
 # The default provider is "Other" which works with RunPod's S3-compatible API
-# (https://docs.runpod.io/storage/s3-api).  Set RC_LORA_S3_PROVIDER to e.g.
+# (https://docs.runpod.io/storage/s3-api). Set RC_LORA_S3_PROVIDER to e.g.
 # "AWS", "Minio", "Cloudflare", or "Wasabi" for other backends.
 if [[ -n "$RC_LORA_S3_BUCKET" ]]; then
     echo "Downloading loras from S3-compatible storage..."
     mkdir -p /media/loras
-    for i in 1 2 3; do
-        if rclone version > /dev/null 2>&1; then
-            break
-        fi
-        echo "Waiting for rclone to become available (attempt $i)..." >&2
-        sleep 1
-    done
+    wait_for_rclone
     rclone copy :s3:"$RC_LORA_S3_BUCKET" /media/loras/ \
         --s3-provider "${RC_LORA_S3_PROVIDER:-Other}" \
         --s3-endpoint "$RC_LORA_S3_ENDPOINT" \
@@ -130,53 +136,31 @@ if [[ -n "$RC_LORA_S3_BUCKET" ]]; then
         --s3-secret-access-key "$RC_LORA_S3_SECRET_ACCESS_KEY" \
         --s3-region "${RC_LORA_S3_REGION:-us-east-1}" \
         --s3-sign-accept-encoding=false \
-        --transfers "${RC_TRANSFERS:-5}" --retries 3 --verbose
+        --transfers "${RC_TRANSFERS:-5}" \
+        --retries 3 \
+        --verbose
     SD_LORA_DIR=/media/loras/
 fi
 
-if [[ -n "$SD_MODEL_PATH" ]]; then
-    SERVER_ARGS+=("--model" "$SD_MODEL_PATH")
-fi
+# Map each optional model/config env var to its CLI argument. Using a helper
+# keeps the long block of near-identical "if set, append" checks compact.
+add_arg_if_set() {
+    local flag="$1"
+    local value="$2"
+    [[ -n "$value" ]] && SERVER_ARGS+=("$flag" "$value")
+}
 
-if [[ -n "$SD_CLIP_L_PATH" ]]; then
-    SERVER_ARGS+=("--clip_l" "$SD_CLIP_L_PATH")
-fi
-
-if [[ -n "$SD_CLIP_G_PATH" ]]; then
-    SERVER_ARGS+=("--clip_g" "$SD_CLIP_G_PATH")
-fi
-
-if [[ -n "$SD_T5XXL_PATH" ]]; then
-    SERVER_ARGS+=("--t5xxl" "$SD_T5XXL_PATH")
-fi
-
-if [[ -n "$SD_LLM_PATH" ]]; then
-    SERVER_ARGS+=("--llm" "$SD_LLM_PATH")
-fi
-
-if [[ -n "$SD_DIFFUSION_MODEL_PATH" ]]; then
-    SERVER_ARGS+=("--diffusion-model" "$SD_DIFFUSION_MODEL_PATH")
-fi
-
-if [[ -n "$SD_VAE_PATH" ]]; then
-    SERVER_ARGS+=("--vae" "$SD_VAE_PATH")
-fi
-
-if [[ -n "$SD_LORA_DIR" ]]; then
-    SERVER_ARGS+=("--lora-model-dir" "$SD_LORA_DIR")
-fi
-
-if [[ -n "$SD_TYPE" ]]; then
-    SERVER_ARGS+=("--type" "$SD_TYPE")
-fi
-
-if [[ -n "$SD_RNG" ]]; then
-    SERVER_ARGS+=("--rng" "$SD_RNG")
-fi
-
-if [[ -n "$SD_THREADS" ]]; then
-    SERVER_ARGS+=("--threads" "$SD_THREADS")
-fi
+add_arg_if_set "--model" "$SD_MODEL_PATH"
+add_arg_if_set "--clip_l" "$SD_CLIP_L_PATH"
+add_arg_if_set "--clip_g" "$SD_CLIP_G_PATH"
+add_arg_if_set "--t5xxl" "$SD_T5XXL_PATH"
+add_arg_if_set "--llm" "$SD_LLM_PATH"
+add_arg_if_set "--diffusion-model" "$SD_DIFFUSION_MODEL_PATH"
+add_arg_if_set "--vae" "$SD_VAE_PATH"
+add_arg_if_set "--lora-model-dir" "$SD_LORA_DIR"
+add_arg_if_set "--type" "$SD_TYPE"
+add_arg_if_set "--rng" "$SD_RNG"
+add_arg_if_set "--threads" "$SD_THREADS"
 
 SERVER_ARGS+=("--width" "${SD_DEFAULT_WIDTH:-1024}")
 SERVER_ARGS+=("--height" "${SD_DEFAULT_HEIGHT:-1024}")
@@ -184,16 +168,23 @@ SERVER_ARGS+=("--steps" "${SD_DEFAULT_STEPS:-20}")
 SERVER_ARGS+=("--cfg-scale" "${SD_DEFAULT_CFG:-7.0}")
 SERVER_ARGS+=("--sampling-method" "${SD_DEFAULT_SAMPLER:-euler_a}")
 
-[[ "$SD_VERBOSE" == "1" ]] && SERVER_ARGS+=("--verbose")
-[[ "$SD_VAE_TILING" == "1" ]] && SERVER_ARGS+=("--vae-tiling")
-[[ "$SD_OFFLOAD_CPU" == "1" ]] && SERVER_ARGS+=("--offload-to-cpu")
-[[ "$SD_FLASH_ATTN" == "1" ]] && SERVER_ARGS+=("--fa")
-[[ "$SD_DIFFUSION_FLASH_ATTN" == "1" ]] && SERVER_ARGS+=("--diffusion-fa")
-[[ "$SD_MMAP" == "1" ]] && SERVER_ARGS+=("--mmap")
-[[ "$SD_CLIP_ON_CPU" == "1" ]] && SERVER_ARGS+=("--clip-on-cpu")
-[[ "$SD_VAE_ON_CPU" == "1" ]] && SERVER_ARGS+=("--vae-on-cpu")
-[[ "$SD_CONTROL_NET_CPU" == "1" ]] && SERVER_ARGS+=("--control-net-cpu")
-[[ "${SD_DISABLE_AUTO_RESIZE_REF_IMAGE:-1}" == "1" ]] && SERVER_ARGS+=("--disable-auto-resize-ref-image")
+# Map each "1"-valued feature flag to its bare CLI switch.
+add_flag_if_enabled() {
+    local var_value="$1"
+    local flag="$2"
+    [[ "$var_value" == "1" ]] && SERVER_ARGS+=("$flag")
+}
+
+add_flag_if_enabled "$SD_VERBOSE" "--verbose"
+add_flag_if_enabled "$SD_VAE_TILING" "--vae-tiling"
+add_flag_if_enabled "$SD_OFFLOAD_CPU" "--offload-to-cpu"
+add_flag_if_enabled "$SD_FLASH_ATTN" "--fa"
+add_flag_if_enabled "$SD_DIFFUSION_FLASH_ATTN" "--diffusion-fa"
+add_flag_if_enabled "$SD_MMAP" "--mmap"
+add_flag_if_enabled "$SD_CLIP_ON_CPU" "--clip-on-cpu"
+add_flag_if_enabled "$SD_VAE_ON_CPU" "--vae-on-cpu"
+add_flag_if_enabled "$SD_CONTROL_NET_CPU" "--control-net-cpu"
+add_flag_if_enabled "${SD_DISABLE_AUTO_RESIZE_REF_IMAGE:-1}" "--disable-auto-resize-ref-image"
 
 echo "Starting sd-server with arguments:"
 echo "${SERVER_ARGS[@]}"
@@ -202,9 +193,16 @@ echo ""
 sd-server "${SERVER_ARGS[@]}" &
 SERVER_PID=$!
 
-export SD_SERVER_URL="http://127.0.0.1:${SD_SERVER_PORT:-8080}"
+# Ensure sd-server is torn down if this script exits before handing off to the
+# handler (e.g. a failed readiness check or a received signal). Once we exec
+# into the handler the shell is replaced and this trap no longer applies.
+trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT INT TERM
 
-READY_RETRIES="${SD_READY_RETRIES:-10}"
+export SD_SERVER_URL="http://127.0.0.1:${SD_SERVER_PORT}"
+
+# Defaults give 150 * 2s = 5 minutes, enough for large models (SDXL/FLUX)
+# loading from a network volume on a cold start.
+READY_RETRIES="${SD_READY_RETRIES:-150}"
 READY_INTERVAL="${SD_READY_INTERVAL:-2}"
 READY_URL="${SD_SERVER_URL}/sdapi/v1/sd-models"
 LORAS_URL="${SD_SERVER_URL}/sdapi/v1/loras"
