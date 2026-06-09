@@ -76,7 +76,6 @@ FROM nvidia/cuda:${CUDA_VERSION}-cudnn-runtime-ubuntu24.04 AS runtime
 # Note: the venv bin directory comes first on PATH on purpose. The startup
 # script launches the worker with `exec python ...`, and the `python` symlink
 # only exists inside the venv (the base image ships `python3`). Keep it first.
-ARG RCLONE_VERSION=v1.74.3
 ENV DEBIAN_FRONTEND=noninteractive \
     VIRTUAL_ENV=/opt/venv \
     PATH="/opt/venv/bin:/usr/local/bin:${PATH}" \
@@ -101,8 +100,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     unzip \
     && rm -rf /var/lib/apt/lists/*
 
-# Install rclone using the official install script.
-RUN curl https://rclone.org/install.sh | bash
+# Install rclone at a pinned version for reproducible builds.
+ARG RCLONE_VERSION=1.74.3
+RUN set -eux; \
+    curl -fsS "https://downloads.rclone.org/v${RCLONE_VERSION}/rclone-v${RCLONE_VERSION}-linux-amd64.zip" -o rclone.zip; \
+    unzip rclone.zip; \
+    cp rclone-v*/rclone /usr/bin/rclone; \
+    chmod 755 /usr/bin/rclone; \
+    rm -rf rclone.zip rclone-v*/; \
+    echo "Installed rclone version:"; \
+    rclone version
 
 # Copy uv from its official container image so Python dependencies can be
 # installed into a dedicated virtual environment without bringing in pip tooling.
