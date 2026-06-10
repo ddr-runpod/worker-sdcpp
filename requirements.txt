@@ -1,4 +1,12 @@
-# used by the Python worker to call the local sd-server HTTP API
+# used by the queue handler to call the local sd-server HTTP API
 requests>=2.33.0
-# RunPod SDK used to receive and handle serverless jobs
+# RunPod SDK used to receive and handle queue-based serverless jobs
 runpod>=1.8.2
+# HTTP framework for the load-balancing handler; runs the catch-all reverse
+# proxy on $PORT and serves the /ping health probe.
+fastapi>=0.110
+# ASGI server that hosts the FastAPI app in load-balancing mode.
+uvicorn[standard]>=0.27
+# Async HTTP client used by the load-balancing handler to forward requests
+# to sd-server without blocking the FastAPI event loop.
+httpx>=0.27

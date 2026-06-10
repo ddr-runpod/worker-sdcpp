@@ -219,8 +219,15 @@ for attempt in $(seq 1 "$READY_RETRIES"); do
         echo "sd-server is ready, initializing LoRA endpoint..."
         curl -s "$LORAS_URL" > /dev/null 2>&1 || true
 
-        echo "Starting handler..."
-        exec python -m src.handler
+        ENDPOINT_MODE="${ENDPOINT_MODE:-queue}"
+        if [[ "$ENDPOINT_MODE" == "loadbalancer" ]]; then
+            LB_PORT="${PORT:-80}"
+            echo "Starting load-balancing handler on port ${LB_PORT}..."
+            exec python -m src.handler_load_balancing
+        fi
+
+        echo "Starting queue handler..."
+        exec python -m src.handler_queue
     fi
 
     if ! kill -0 "$SERVER_PID" 2>/dev/null; then

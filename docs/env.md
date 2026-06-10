@@ -84,3 +84,12 @@ A trailing `/` denotes a directory (the result gets a trailing `/`); otherwise i
 |--------------|---------|-------------|
 | `SD_SERVER_URL` | `http://127.0.0.1:8080` | URL of the sd-server process |
 | `HANDLER_TIMEOUT` | `300` | Request timeout in seconds |
+
+## Endpoint Mode
+
+| Env Variable | Default | Description |
+|--------------|---------|-------------|
+| `ENDPOINT_MODE` | `queue` | Selects which RunPod serverless endpoint type the worker runs as. `queue` (default) starts the `runpod` SDK handler that pulls jobs from the RunPod queue. `loadbalancer` starts a FastAPI reverse-proxy on `$PORT` (default 80) that exposes the A1111/OpenAI endpoints directly to the RunPod load balancer. |
+| `PORT` | `80` | Listen port for the load-balancing FastAPI app. Ignored in `queue` mode. Must be added to the endpoint's env vars and to **Expose HTTP Ports** if changed from 80. |
+| `PORT_HEALTH` | `=PORT` | Port the RunPod load balancer probes `/ping` on. Defaults to `PORT`, so a single FastAPI process serves both traffic and the health check. Ignored in `queue` mode. |
+| `LOG_LEVEL` | `info` | uvicorn log level (`critical`, `error`, `warning`, `info`, `debug`, `trace`). Ignored in `queue` mode. |

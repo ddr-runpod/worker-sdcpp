@@ -1,6 +1,6 @@
 # RunPod Worker for stable-diffusion.cpp
 
-A RunPod serverless worker using [stable-diffusion.cpp](https://github.com/leejet/stable-diffusion.cpp) for high-performance diffusion model inference. Uses the RunPod SDK to process queue-based jobs and forwards them to an A1111-compatible REST API server.
+A RunPod serverless worker using [stable-diffusion.cpp](https://github.com/leejet/stable-diffusion.cpp) for high-performance diffusion model inference. Runs as either a queue-based endpoint (RunPod SDK handler) or a load-balancing endpoint (FastAPI reverse proxy to the A1111-compatible REST API).
 
 **Repository:** https://github.com/ddr-runpod/worker-sdcpp
 
@@ -55,6 +55,33 @@ docker push ddr-runpod/worker-sdcpp:latest
 
 All parameters are configured via environment variables at container startup.
 See [docs/env.md](docs/env.md) for complete reference.
+
+## Endpoint Modes
+
+The worker supports both RunPod serverless endpoint types. Pick the mode that fits your workload and set `ENDPOINT_MODE` accordingly in the endpoint's environment variables.
+
+| Mode | When to use | Endpoint Type | Worker entrypoint |
+|---|---|---|---|
+| `queue` (default) | You want guaranteed execution, automatic retries, queue buffering, and progress updates. | **Queue** in the RunPod endpoint wizard. Standard `/run` and `/runsync` API. | `runpod.serverless.start({handler})` SDK |
+| `loadbalancer` | You want lower latency, custom URL paths, or direct A1111-style access (e.g. dropping the worker URL into existing ComfyUI/InvokeAI tooling). | **Load Balancer** in the RunPod endpoint wizard. | FastAPI reverse-proxy on `$PORT` (default 80) |
+
+Switch modes by setting `ENDPOINT_MODE=loadbalancer` (or leaving it unset / `queue` for the default). The startup script picks the right Python entrypoint; sd-server, model loading, and all `SD_*` env vars are identical in both modes.
+
+### Load-balancer mode specifics
+
+- Health probe: `GET /ping` returns `200` when sd-server is ready, `204` while it is still initializing. RunPod uses this to measure cold-start time.
+- All A1111 endpoints and the OpenAI-compatible endpoints are exposed directly: `https://ENDPOINT_ID.api.runpod.ai/sdapi/v1/txt2img`, `.../v1/images/generations`, etc.
+- Limits from the [RunPod load-balancing docs](https://docs.runpod.io/serverless/load-balancing/overview): 5.5 min per-request processing timeout, 30 MB request and response payload, no built-in retries. Use [network volumes](https://docs.runpod.io/storage/network-volumes) or request chunking for larger payloads.
+- Port handling: `PORT` defaults to `80`, `PORT_HEALTH` defaults to `=PORT`. Override `PORT` in the endpoint's env vars and add it under **Expose HTTP Ports** if you change it.
+
+### Example load-balancer request
+
+```bash
+curl -X POST "https://ENDPOINT_ID.api.runpod.ai/sdapi/v1/txt2img" \
+  -H "Authorization: Bearer RUNPOD_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"prompt": "a beautiful sunset over mountains", "steps": 20, "width": 1024, "height": 768}'
+```
 
 ## Job Input Format
 
@@ -310,9 +337,9 @@ Image editing/inpainting with OpenAI format.
 3. **Use quantized models** (GGUF) to reduce VRAM requirements
 4. **Enable flash attention** (`SD_FLASH_ATTN=1`) for memory savings on CUDA
 
-## Testing
+## Local Server Testing
 
-### Local Testing
+Manual smoke testing of a running `sd-server` (requires a CUDA-capable host):
 
 ```bash
 # Start the server locally (requires CUDA)
@@ -340,6 +367,26 @@ with open('output.png', 'wb') as f:
     f.write(base64.b64decode(data['images'][0]))
 "
 ```
+
+## Automated Tests
+
+A `pytest` suite covers the queue handler, the load-balancing proxy, and `/ping` semantics. Tests run entirely locally; no GPU or live sd-server is required.
+
+```bash
+# Install test-only dependencies (run once):
+uv pip install -r requirements.txt -r requirements-dev.txt
+
+# Run the full suite:
+pytest
+```
+
+| Layer | What it covers | Mocking strategy |
+|---|---|---|
+| `tests/test_handler_queue.py` | Queue handler routing, error paths, payload pass-through | `requests-mock` (HTTP) |
+| `tests/test_handler_load_balancing.py` | `/ping` 200/204 semantics; catch-all proxy forwarding, headers, query, 502 path | `respx` (httpx) |
+| `tests/integration/test_proxy_e2e.py` | Real-socket end-to-end against a local HTTP server | Real `http.server` in a thread |
+
+Test-only dependencies live in `requirements-dev.txt` and are **not** installed in the production Docker image. The Dockerfile is unchanged.
 
 ## Known Limitations
 

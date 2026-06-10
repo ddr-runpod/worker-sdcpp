@@ -135,8 +135,12 @@ RUN set -eux; \
 COPY src/ /src/
 COPY --chmod=755 scripts/startup.sh /scripts/startup.sh
 
-# sd-server listens on port 8080 by default.
-EXPOSE 8080
+# sd-server listens on port 8080 by default. In load-balancing mode the
+# FastAPI reverse proxy listens on port 80 (RunPod's default $PORT), so
+# expose both: 80 for the LB-facing proxy and 8080 for the local sd-server
+# backend (and for users running queue mode and pointing clients at
+# sd-server directly).
+EXPOSE 80 8080
 
 # Container-level health probe reusing the server's readiness endpoint.
 # RunPod serverless ignores HEALTHCHECK, but it is useful for local runs,
