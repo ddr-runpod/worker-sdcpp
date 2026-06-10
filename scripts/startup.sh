@@ -149,7 +149,9 @@ fi
 add_arg_if_set() {
     local flag="$1"
     local value="$2"
-    [[ -n "$value" ]] && SERVER_ARGS+=("$flag" "$value")
+    if [[ -n "$value" ]]; then
+        SERVER_ARGS+=("$flag" "$value")
+    fi
 }
 
 add_arg_if_set "--model" "$SD_MODEL_PATH"
@@ -174,7 +176,9 @@ SERVER_ARGS+=("--sampling-method" "${SD_DEFAULT_SAMPLER:-euler_a}")
 add_flag_if_enabled() {
     local var_value="$1"
     local flag="$2"
-    [[ "$var_value" == "1" ]] && SERVER_ARGS+=("$flag")
+    if [[ "$var_value" == "1" ]]; then
+        SERVER_ARGS+=("$flag")
+    fi
 }
 
 add_flag_if_enabled "$SD_VERBOSE" "--verbose"
