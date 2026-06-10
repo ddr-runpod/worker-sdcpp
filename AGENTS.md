@@ -86,7 +86,7 @@ pytest -k test_ping_returns_204_when_upstream_unreachable
 ```
 tests/
 ├── conftest.py                             # Shared fixtures: respx_mock, client, env setup
-├── test_handler_load_balancing.py          # FastAPI proxy + /ping (respx-driven, 14 tests)
+├── test_handler_load_balancing.py          # FastAPI proxy + /ping + CORS (respx-driven, 17 tests)
 ├── test_handler_queue.py                   # runpod SDK handler (requests-mock, 7 tests)
 └── integration/
     ├── conftest.py                         # Spawns a real local HTTP upstream server
@@ -119,6 +119,7 @@ See [docs/stable-diffusion.cpp/api.md](docs/stable-diffusion.cpp/api.md) for com
 | No progress endpoint | `/sdapi/v1/progress` not implemented | Client waits for response |
 | No interrupt/skip | Cannot cancel generation | Wait for completion |
 | Sequential processing | One generation at a time | Increase concurrent workers |
+| No CORS when scaled to zero | RunPod's load balancer gateway returns 401/503 without `Access-Control-Allow-Origin` headers when no worker instance is running. Our FastAPI app's `CORSMiddleware` only applies when an instance is active. | Use an external CORS proxy (e.g. Cloudflare Worker, nginx) that handles `OPTIONS` preflights and forwards requests to the RunPod endpoint, or use server-to-server calls. |
 
 ## Documentation
 
@@ -139,7 +140,7 @@ worker-sdcpp/
 │   └── handler_load_balancing.py        # FastAPI reverse proxy + /ping (loadbalancer mode)
 ├── tests/
 │   ├── conftest.py                      # Shared fixtures
-│   ├── test_handler_load_balancing.py   # 14 respx-driven tests
+│   ├── test_handler_load_balancing.py   # 17 respx-driven tests
 │   ├── test_handler_queue.py            # 7 requests-mock tests
 │   └── integration/
 │       ├── conftest.py                  # Real local HTTP upstream fixture

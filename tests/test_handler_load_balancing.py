@@ -38,6 +38,40 @@ def test_ping_returns_204_when_upstream_times_out(respx_mock, client):
     assert response.status_code == 204
 
 
+# CORS headers
+# ------------
+def test_ping_response_includes_cors_headers(respx_mock, client):
+    respx_mock.get("http://mock-upstream/sdapi/v1/sd-models").mock(
+        return_value=Response(200, json=[{"title": "model"}])
+    )
+    response = client.get("/ping", headers={"Origin": "http://example.com"})
+    assert response.headers.get("access-control-allow-origin") == "http://example.com"
+    assert response.headers.get("access-control-allow-credentials") == "true"
+
+
+def test_proxy_response_includes_cors_headers(respx_mock, client):
+    respx_mock.get("http://mock-upstream/sdapi/v1/loras").mock(
+        return_value=Response(200, json=[])
+    )
+    response = client.get("/sdapi/v1/loras", headers={"Origin": "http://example.com"})
+    assert response.headers.get("access-control-allow-origin") == "http://example.com"
+    assert response.headers.get("access-control-allow-credentials") == "true"
+
+
+def test_options_preflight_returns_cors_headers(respx_mock, client):
+    response = client.options(
+        "/sdapi/v1/txt2img",
+        headers={
+            "Origin": "http://example.com",
+            "Access-Control-Request-Method": "POST",
+        },
+    )
+    assert response.status_code == 200
+    assert response.headers.get("access-control-allow-origin") == "http://example.com"
+    assert response.headers.get("access-control-allow-credentials") == "true"
+    assert response.headers.get("access-control-allow-methods") is not None
+
+
 # Catch-all proxy
 # ---------------
 def test_proxy_forwards_get_with_path(respx_mock, client):

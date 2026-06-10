@@ -84,6 +84,7 @@ A trailing `/` denotes a directory (the result gets a trailing `/`); otherwise i
 |--------------|---------|-------------|
 | `SD_SERVER_URL` | `http://127.0.0.1:8080` | URL of the sd-server process |
 | `HANDLER_TIMEOUT` | `300` | Request timeout in seconds |
+| `CORS_ORIGINS` | `*` | Comma-separated list of allowed origins for CORS, or `*` to allow all origins. Used by FastAPI's CORSMiddleware in `loadbalancer` mode. |
 
 ## Endpoint Mode
 

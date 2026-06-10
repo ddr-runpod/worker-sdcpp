@@ -5,6 +5,7 @@ import httpx
 import uvicorn
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 
 SD_SERVER_URL = os.getenv("SD_SERVER_URL", "http://127.0.0.1:8080")
@@ -15,6 +16,7 @@ REQUEST_TIMEOUT = int(os.getenv("HANDLER_TIMEOUT", "300"))
 PING_TIMEOUT_SECONDS = 5
 PORT = int(os.getenv("PORT", "80"))
 LOG_LEVEL = os.getenv("LOG_LEVEL", "info").lower()
+CORS_ORIGINS = os.getenv("CORS_ORIGINS", "*")
 
 # Hop-by-hop headers (RFC 7230 §6.1) and headers that httpx manages itself
 # when forwarding a request. Stripping them avoids request smuggling and
@@ -43,6 +45,14 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="worker-sdcpp", lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.get("/ping")
