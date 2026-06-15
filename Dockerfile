@@ -133,9 +133,12 @@ RUN set -eux; \
     rm -f /tmp/requirements.txt; \
     test -x "${VIRTUAL_ENV}/bin/python"
 
-# Copy the worker code and the startup script.
+# Copy the worker code, the startup script, and the version file.
 COPY src/ /src/
 COPY --chmod=755 scripts/startup.sh /scripts/startup.sh
+COPY VERSION /VERSION
+
+RUN echo "worker-sdcpp version: $(cat /VERSION)"
 
 # sd-server listens on port 8080 by default. In load-balancing mode the
 # FastAPI reverse proxy listens on port 80 (RunPod's default $PORT), so

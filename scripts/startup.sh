@@ -1,6 +1,8 @@
 #!/bin/bash
 set -eo pipefail
 
+echo "worker-sdcpp version: $(cat /VERSION)"
+
 # Effective host/port resolved once so every consumer (server args, readiness
 # URL, handler URL) stays in sync and the fallbacks can't drift.
 SD_SERVER_HOST="${SD_SERVER_HOST:-0.0.0.0}"
