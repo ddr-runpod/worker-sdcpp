@@ -101,17 +101,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Install rclone at a pinned version for reproducible builds.
-ARG RCLONE_VERSION=1.74.3
 # TODO: remove the `rm -f /usr/bin/rclone` line once upstream CI is confirmed
 # to not serve stale cached rclone binaries. The rm ensures no v1.58.1 artifact
 # from a prior apt-get-based installation leaks through.
 RUN set -eux; \
     rm -f /usr/bin/rclone; \
-    curl -fsSL "https://downloads.rclone.org/v${RCLONE_VERSION}/rclone-v${RCLONE_VERSION}-linux-amd64.zip" -o rclone.zip; \
+    curl -fsSL "https://downloads.rclone.org/v1.74.3/rclone-v1.74.3-linux-amd64.zip" -o rclone.zip; \
     unzip -q rclone.zip; \
-    cp rclone-v*/rclone /usr/bin/rclone; \
+    cp rclone-v1.74.3-linux-amd64/rclone /usr/bin/rclone; \
     chmod 755 /usr/bin/rclone; \
-    rm -rf rclone.zip rclone-v*/; \
+    rm -rf rclone.zip rclone-v1.74.3-linux-amd64/; \
     rclone version
 
 # Copy uv from its official container image so Python dependencies can be
