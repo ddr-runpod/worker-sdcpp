@@ -96,17 +96,6 @@ wait_for_rclone() {
     exit 1
 }
 
-# HACK: Download the latest rclone binary when LoRA-over-HTTP/S3 is configured.
-# The version bundled in the base image is unreliable, so we override it here.
-# TODO: Remove this block once the base image ships a working rclone.
-if [[ -n "$RC_LORA_URL" || -n "$RC_LORA_S3_BUCKET" ]]; then
-    if command -v rclone &> /dev/null; then
-        echo "rclone already installed, version: $(rclone version 2>&1 | head -2 | xargs)"
-    fi
-    echo "Downloading rclone binary..."
-    curl -fsSL https://rclone.org/install.sh | bash
-fi
-
 [[ -n "$RP_MODEL_PATH" ]] && SD_MODEL_PATH=$(resolve_runpod_cache_path "$RP_MODEL_PATH")
 [[ -n "$RP_DIFFUSION_MODEL_PATH" ]] && SD_DIFFUSION_MODEL_PATH=$(resolve_runpod_cache_path "$RP_DIFFUSION_MODEL_PATH")
 [[ -n "$RP_VAE_PATH" ]] && SD_VAE_PATH=$(resolve_runpod_cache_path "$RP_VAE_PATH")
