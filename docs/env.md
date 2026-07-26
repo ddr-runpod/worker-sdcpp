@@ -63,6 +63,8 @@ A trailing `/` denotes a directory (the result gets a trailing `/`); otherwise i
 | `SD_DEFAULT_STEPS` | `--steps` | Default sampling steps | `20`      |
 | `SD_DEFAULT_CFG` | `--cfg-scale` | Default CFG scale | `7.0`     |
 | `SD_DEFAULT_SAMPLER` | `--sampling-method` | Default sampler | `euler_a` |
+| `SD_DEFAULT_SCHEDULER` | `--scheduler` | Default sigma scheduler | `discrete` |
+| `SD_DEFAULT_FLOW_SHIFT` | `--flow-shift` | Shift value for Flow models (SD3.x, WAN). Only passed when set; `--flow-shift auto` is otherwise used by sd-server. | (unset) |
 
 ## Feature Flags
 

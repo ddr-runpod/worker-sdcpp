@@ -299,6 +299,8 @@ For container deployment, these parameters map to environment variables:
 | `--steps` | `SD_DEFAULT_STEPS` |
 | `--cfg-scale` | `SD_DEFAULT_CFG` |
 | `--sampling-method` | `SD_DEFAULT_SAMPLER` |
+| `--scheduler` | `SD_DEFAULT_SCHEDULER` |
+| `--flow-shift` | `SD_DEFAULT_FLOW_SHIFT` |
 | `--vae-tiling` | `SD_VAE_TILING` |
 | `--offload-to-cpu` | `SD_OFFLOAD_CPU` |
 | `--fa` | `SD_FLASH_ATTN` |

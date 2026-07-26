@@ -184,6 +184,8 @@ SERVER_ARGS+=("--height" "${SD_DEFAULT_HEIGHT:-1024}")
 SERVER_ARGS+=("--steps" "${SD_DEFAULT_STEPS:-20}")
 SERVER_ARGS+=("--cfg-scale" "${SD_DEFAULT_CFG:-7.0}")
 SERVER_ARGS+=("--sampling-method" "${SD_DEFAULT_SAMPLER:-euler_a}")
+SERVER_ARGS+=("--scheduler" "${SD_DEFAULT_SCHEDULER:-discrete}")
+add_arg_if_set "--flow-shift" "$SD_DEFAULT_FLOW_SHIFT"
 
 # Map each "1"-valued feature flag to its bare CLI switch.
 add_flag_if_enabled() {
