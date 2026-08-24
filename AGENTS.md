@@ -50,11 +50,11 @@ Request flow:
 
 | Argument | Default | Description |
 |----------|---------|-------------|
-| `SD_CPP_COMMIT` | `7397dda` | Git commit hash of stable-diffusion.cpp for reproducible builds |
+| `SD_CPP_COMMIT` | `97d2990` | Git commit hash of stable-diffusion.cpp for reproducible builds |
 
 Example:
 ```bash
-docker build --build-arg SD_CPP_COMMIT=7397dda -t worker-sdcpp:latest .
+docker build --build-arg SD_CPP_COMMIT=97d2990 -t worker-sdcpp:latest .
 ```
 
 ## Code Conventions

@@ -7,6 +7,12 @@ echo "worker-sdcpp version: $(cat /VERSION)"
 # URL, handler URL) stays in sync and the fallbacks can't drift.
 SD_SERVER_HOST="${SD_SERVER_HOST:-0.0.0.0}"
 SD_SERVER_PORT="${SD_SERVER_PORT:-8080}"
+SD_LORA_DIR="${SD_LORA_DIR:-/media/loras/}"
+
+# sd-server expects --lora-model-dir to point at an existing directory; the
+# dir may be created at runtime by the RC_LORA_* / HF_LORAS download blocks
+# below, so make sure it exists before it is passed as a server argument.
+mkdir -p "$SD_LORA_DIR"
 
 SERVER_ARGS=()
 SERVER_ARGS+=("--listen-ip" "$SD_SERVER_HOST")
@@ -155,6 +161,32 @@ if [[ -n "$RC_LORA_S3_BUCKET" ]]; then
         --retries 3 \
         --verbose
     SD_LORA_DIR=/media/loras/
+fi
+
+# If HF_LORAS is set, download each listed LoRA file from the Hugging Face
+# Hub into SD_LORA_DIR using the `hf` CLI. Entries are comma-separated in
+# '<org>/<repo>/<file>' format. --local-dir preserves each file's basename
+# in the target directory, and the CLI transparently uses HF_TOKEN for
+# gated repositories. Composes with RC_LORA_URL, RC_LORA_S3_BUCKET, and
+# RP_LORA_DIR: files from all sources land in the same directory.
+if [[ -n "$HF_LORAS" ]]; then
+    mkdir -p "$SD_LORA_DIR"
+    IFS=',' read -ra hf_loras <<< "$HF_LORAS"
+    for entry in "${hf_loras[@]}"; do
+        entry="${entry// /}"
+        [[ -z "$entry" ]] && continue
+        # Enforce the '<org>/<repo>/<file>' shape strictly: a leading slash
+        # (e.g. from a stray space after a comma) would otherwise slip past
+        # the simple glob and be rejected by `hf` with a confusing error.
+        if [[ ! "$entry" =~ ^[^/]+/[^/]+/[^/]+$ ]]; then
+            echo "ERROR: HF_LORAS entry must be '<org>/<repo>/<file>', got: $entry" >&2
+            exit 1
+        fi
+        repo_id="${entry%/*}"
+        file="${entry##*/}"
+        echo "Downloading $repo_id/$file into $SD_LORA_DIR..."
+        hf download "$repo_id" "$file" --local-dir "$SD_LORA_DIR"
+    done
 fi
 
 # Map each optional model/config env var to its CLI argument. Using a helper

@@ -21,7 +21,8 @@ This file documents all environment variables used to configure the stable-diffu
 | `SD_T5XXL_PATH` | `--t5xxl` | T5XXL encoder (FLUX/SD3) |
 | `SD_LLM_PATH` | `--llm` | LLM encoder (FLUX.2, Qwen-Image) |
 | `SD_VAE_PATH` | `--vae` | Standalone VAE model |
-| `SD_LORA_DIR` | `--lora-model-dir` | Directory containing LoRA models |
+| `SD_LORA_DIR` | `--lora-model-dir` | Directory containing LoRA models. Defaults to `/media/loras/`. |
+| `HF_LORAS` | (none) | Comma-separated list of Hugging Face URLs in `org/repo/file` format. Each file is downloaded to `SD_LORA_DIR` at startup via `hf download` (uses `HF_TOKEN` for gated repos). Composes with `RC_LORA_URL`, `RC_LORA_S3_BUCKET`, and `RP_LORA_DIR`. |
 | `RC_LORA_URL` | (none) | HTTP URL to download LoRA files from at startup via `rclone copy :http:`. Takes precedence over `SD_LORA_DIR` and `RP_LORA_DIR`. |
 | `RC_LORA_S3_BUCKET` | (none) | S3 bucket and optional prefix for LoRA downloads via `rclone copy :s3:` (e.g. `my-bucket/loras/`). Requires `RC_LORA_S3_ENDPOINT`, `RC_LORA_S3_ACCESS_KEY_ID`, and `RC_LORA_S3_SECRET_ACCESS_KEY`. Takes precedence over `SD_LORA_DIR` and `RP_LORA_DIR`. |
 | `RC_LORA_S3_ENDPOINT` | (none) | S3-compatible endpoint URL (e.g. `https://s3api-us-ks-2.runpod.io/`). |

@@ -10,3 +10,6 @@ uvicorn[standard]>=0.27
 # Async HTTP client used by the load-balancing handler to forward requests
 # to sd-server without blocking the FastAPI event loop.
 httpx>=0.27
+# Provides the `hf` CLI used by startup.sh to download LoRA files listed in
+# the HF_LORAS environment variable into SD_LORA_DIR at container startup.
+huggingface_hub>=1.0
