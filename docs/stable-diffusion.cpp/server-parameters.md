@@ -321,6 +321,7 @@ For container deployment, these parameters map to environment variables:
 | `--fps` | `SD_DEFAULT_FPS` |
 | `--video-frames` | `SD_DEFAULT_VIDEO_FRAMES` |
 | `--ref-image-args` | `SD_DEFAULT_REF_IMAGE_ARGS` |
+| `--backend` | `SD_BACKEND` |
 | `--params-backend` | `SD_PARAMS_BACKEND` |
 | `--max-vram` | `SD_MAX_VRAM` |
 | `--vae-tiling` | `SD_VAE_TILING` |

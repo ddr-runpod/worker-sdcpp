@@ -37,6 +37,7 @@ This file documents all environment variables used to configure the stable-diffu
 | `SD_THREADS` | `--threads` | CPU threads (-1 = auto) |
 | `SD_PARAMS_BACKEND` | `--params-backend` | Where model weights are held, e.g. `diffusion=cpu,te=disk,vae=disk`. An explicit value disables automatic `--auto-fit` placement. Note: because the image sets `SD_OFFLOAD_CPU=1`, `*=cpu` is prepended to this value (`--offload-to-cpu` is a shorthand for `*=cpu`). Explicit per-module assignments still win over that `*=` default, so this is safe to combine; set `SD_OFFLOAD_CPU=0` for a clean value. |
 | `SD_MAX_VRAM` | `--max-vram` | Per-device budget in GiB for managed weights during automatic graph-cut execution, e.g. `6` or `cuda0=6,vulkan0=4`. `0` uses live free VRAM; a negative value reserves that much free VRAM. |
+| `SD_BACKEND` | `--backend` | Runtime backend used to execute model graphs, e.g. `cpu` or `te=cpu,vae=cuda0,diffusion=cuda0`. Accepts `all=`/`default=`/`*=` for the default and `&` for multi-device splits. Complements `SD_PARAMS_BACKEND` (parameter residency). |
 
 ## RunPod HuggingFace Model Caching
 

@@ -215,6 +215,7 @@ add_arg_if_set "--lora-model-dir" "$SD_LORA_DIR"
 add_arg_if_set "--type" "$SD_TYPE"
 add_arg_if_set "--rng" "$SD_RNG"
 add_arg_if_set "--threads" "$SD_THREADS"
+add_arg_if_set "--backend" "$SD_BACKEND"
 add_arg_if_set "--params-backend" "$SD_PARAMS_BACKEND"
 add_arg_if_set "--max-vram" "$SD_MAX_VRAM"
 
