@@ -21,6 +21,7 @@ This file documents all environment variables used to configure the stable-diffu
 | `SD_T5XXL_PATH` | `--t5xxl` | T5XXL encoder (FLUX/SD3) |
 | `SD_LLM_PATH` | `--llm` | LLM encoder (FLUX.2, Qwen-Image) |
 | `SD_VAE_PATH` | `--vae` | Standalone VAE model |
+| `SD_AUDIO_VAE_PATH` | `--audio-vae` | Standalone LTX audio VAE model |
 | `SD_LORA_DIR` | `--lora-model-dir` | Directory containing LoRA models. Defaults to `/media/loras/`. |
 | `HF_LORAS` | (none) | Comma-separated list of Hugging Face URLs in `org/repo/file` format. Each file is downloaded to `SD_LORA_DIR` at startup via `hf download` (uses `HF_TOKEN` for gated repos). Composes with `RC_LORA_URL`, `RC_LORA_S3_BUCKET`, and `RP_LORA_DIR`. |
 | `RC_LORA_URL` | (none) | HTTP URL to download LoRA files from at startup via `rclone copy :http:`. Takes precedence over `SD_LORA_DIR` and `RP_LORA_DIR`. |
@@ -50,6 +51,7 @@ Format: `org/name/path` — trailing `/` denotes a directory, otherwise a file
 | `RP_MODEL_PATH` | `SD_MODEL_PATH` | Cached HF model for `--model` |
 | `RP_DIFFUSION_MODEL_PATH` | `SD_DIFFUSION_MODEL_PATH` | Cached HF model for `--diffusion-model` |
 | `RP_VAE_PATH` | `SD_VAE_PATH` | Cached HF model for `--vae` |
+| `RP_AUDIO_VAE_PATH` | `SD_AUDIO_VAE_PATH` | Cached HF model for `--audio-vae` |
 | `RP_LLM_PATH` | `SD_LLM_PATH` | Cached HF model for `--llm` |
 | `RP_LORA_DIR` | `SD_LORA_DIR` | Cached HF model directory for `--lora-model-dir` |
 

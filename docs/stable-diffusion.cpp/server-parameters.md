@@ -31,6 +31,7 @@ This document lists all parameters that can be passed to the `sd-server` binary 
 | | `--diffusion-model` | Path to standalone diffusion model |
 | | `--high-noise-diffusion-model` | Path to standalone high noise diffusion model |
 | | `--vae` | Path to standalone VAE model |
+| | `--audio-vae` | Path to standalone LTX audio VAE model |
 | | `--taesd` | Path to Tiny AutoEncoder for fast decoding (low quality) |
 | | `--tae` | Alias of `--taesd` |
 | | `--control-net` | Path to ControlNet model |
@@ -304,6 +305,7 @@ For container deployment, these parameters map to environment variables:
 | `--t5xxl` | `SD_T5XXL_PATH` |
 | `--llm` | `SD_LLM_PATH` |
 | `--vae` | `SD_VAE_PATH` |
+| `--audio-vae` | `SD_AUDIO_VAE_PATH` |
 | `--lora-model-dir` | `SD_LORA_DIR` |
 | `--type` | `SD_TYPE` |
 | `--rng` | `SD_RNG` |

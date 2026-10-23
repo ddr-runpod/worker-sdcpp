@@ -119,6 +119,7 @@ fi
 [[ -n "$RP_MODEL_PATH" ]] && SD_MODEL_PATH=$(resolve_runpod_cache_path "$RP_MODEL_PATH")
 [[ -n "$RP_DIFFUSION_MODEL_PATH" ]] && SD_DIFFUSION_MODEL_PATH=$(resolve_runpod_cache_path "$RP_DIFFUSION_MODEL_PATH")
 [[ -n "$RP_VAE_PATH" ]] && SD_VAE_PATH=$(resolve_runpod_cache_path "$RP_VAE_PATH")
+[[ -n "$RP_AUDIO_VAE_PATH" ]] && SD_AUDIO_VAE_PATH=$(resolve_runpod_cache_path "$RP_AUDIO_VAE_PATH")
 [[ -n "$RP_LLM_PATH" ]] && SD_LLM_PATH=$(resolve_runpod_cache_path "$RP_LLM_PATH")
 [[ -n "$RP_LORA_DIR" ]] && SD_LORA_DIR=$(resolve_runpod_cache_path "$RP_LORA_DIR")
 
@@ -209,6 +210,7 @@ add_arg_if_set "--t5xxl" "$SD_T5XXL_PATH"
 add_arg_if_set "--llm" "$SD_LLM_PATH"
 add_arg_if_set "--diffusion-model" "$SD_DIFFUSION_MODEL_PATH"
 add_arg_if_set "--vae" "$SD_VAE_PATH"
+add_arg_if_set "--audio-vae" "$SD_AUDIO_VAE_PATH"
 add_arg_if_set "--lora-model-dir" "$SD_LORA_DIR"
 add_arg_if_set "--type" "$SD_TYPE"
 add_arg_if_set "--rng" "$SD_RNG"
