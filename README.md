@@ -28,7 +28,7 @@ cd worker-sdcpp
 
 # Build with specific stable-diffusion.cpp commit (optional)
 docker build --platform linux/amd64 \
-  --build-arg SD_CPP_COMMIT=97d2990807fe6d558e395f8764198d7c7e7b411c \
+  --build-arg SD_CPP_COMMIT=95ff76230889898e1bf40058ba272a3699b50dc6 \
   -t ddr-runpod/worker-sdcpp:latest .
 
 docker push ddr-runpod/worker-sdcpp:latest
