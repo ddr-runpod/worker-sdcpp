@@ -12,10 +12,23 @@ ARG CUDA_VERSION=12.8.1
 FROM nvidia/cuda:${CUDA_VERSION}-cudnn-devel-ubuntu24.04 AS builder
 
 # Pinned stable-diffusion.cpp revision for reproducible builds.
-ARG SD_CPP_COMMIT=97d2990807fe6d558e395f8764198d7c7e7b411c
+#
+# TEMPORARY: the image is currently built from an unmerged pull request,
+# https://github.com/leejet/stable-diffusion.cpp/pull/2177 ("fix: forward
+# ref_image_args to the video pipeline"), so that the video pipeline accepts
+# ref_image_args. The fork and the PR head commit are pinned instead of
+# upstream master.
+#
+# Standard upstream setup, restore once PR 2177 is merged:
+#   ARG SD_CPP_COMMIT=97d2990807fe6d558e395f8764198d7c7e7b411c
+#   ARG SD_CPP_REPO=https://github.com/leejet/stable-diffusion.cpp.git
 
 # Repository URL is configurable to make temporary forks or mirrors easy to test.
-ARG SD_CPP_REPO=https://github.com/leejet/stable-diffusion.cpp.git
+ARG SD_CPP_REPO=https://github.com/philipsorst/stable-diffusion.cpp.git
+
+# PR 2177 head commit (branch feat/vid-gen-ref-image-args). Pinned by SHA rather
+# than branch name so a force-push to the PR cannot silently change the build.
+ARG SD_CPP_COMMIT=186bc7c78d62f17b7487471aad1cce84ca6cfe94
 
 # Keep apt non-interactive during Docker builds.
 ENV DEBIAN_FRONTEND=noninteractive

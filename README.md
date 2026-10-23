@@ -72,7 +72,7 @@ Switch modes by setting `ENDPOINT_MODE=loadbalancer` (or leaving it unset / `que
 - Health probe: `GET /ping` returns `200` when sd-server is ready, `204` while it is still initializing. RunPod uses this to measure cold-start time.
 - All A1111 endpoints and the OpenAI-compatible endpoints are exposed directly: `https://ENDPOINT_ID.api.runpod.ai/sdapi/v1/txt2img`, `.../v1/images/generations`, etc.
 - Limits from the [RunPod load-balancing docs](https://docs.runpod.io/serverless/load-balancing/overview): 5.5 min per-request processing timeout, 30 MB request and response payload, no built-in retries. Use [network volumes](https://docs.runpod.io/storage/network-volumes) or request chunking for larger payloads.
-- Port handling: `PORT` defaults to `80`, `PORT_HEALTH` defaults to `=PORT`. Override `PORT` in the endpoint's env vars and add it under **Expose HTTP Ports** if you change it.
+- Port handling: `PORT` defaults to `80`, and `PORT_HEALTH` (read by RunPod, not by the container) defaults to the same value. Override `PORT` in the endpoint's env vars and add it under **Expose HTTP Ports** if you change it; leave `PORT_HEALTH` unset so the health probe follows `PORT`. Set both only if you serve the health check on a separate port.
 
 ### Example load-balancer request
 
@@ -94,13 +94,18 @@ Jobs are submitted to the RunPod queue with a JSON payload containing the follow
 | `mode` | string | `"txt2img"` | Generation mode: `"txt2img"` or `"img2img"` |
 | `prompt` | string | - | Positive prompt (required) |
 | `negative_prompt` | string | `""` | Negative prompt |
-| `width` | int | `1024` | Image width |
-| `height` | int | `1024` | Image height |
+| `width` | int | `512` | Image width. For `img2img`, omitted means "derive from the init image". |
+| `height` | int | `512` | Image height. For `img2img`, omitted means "derive from the init image". |
 | `steps` | int | `20` | Sampling steps |
 | `cfg_scale` | float | `7.0` | CFG scale |
 | `seed` | int | `-1` | Random seed (-1 for random) |
-| `sampler_name` | string | `"euler_a"` | Sampler name |
-| `scheduler` | string | `"default"` | Scheduler name |
+| `sampler_name` | string | model default | Sampler name |
+| `scheduler` | string | model default | Scheduler name |
+
+These are the defaults of the A1111-compatible endpoints that queue jobs are
+forwarded to. The `SD_DEFAULT_WIDTH`/`HEIGHT`/`SAMPLER`/`SCHEDULER` environment
+variables do not override them; see [docs/env.md](docs/env.md#generation-defaults).
+Send the fields explicitly to pin them.
 
 ### txt2img Example
 

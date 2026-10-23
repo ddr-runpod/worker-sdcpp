@@ -45,7 +45,10 @@ resolve_runpod_cache_path() {
         exit 1
     fi
 
-    local cache_dir="/runpod-volume/huggingface-cache/hub/models--${org,,}--${name,,}"
+    # Hugging Face preserves the case of the repo id in its cache layout
+    # (e.g. models--Qwen--Qwen2.5-0.5B-Instruct), so the org and name must not
+    # be lowercased here or mixed-case repos would never resolve.
+    local cache_dir="/runpod-volume/huggingface-cache/hub/models--${org}--${name}"
     local refs_file="$cache_dir/refs/main"
     local snapshots_dir="$cache_dir/snapshots"
 
@@ -210,14 +213,22 @@ add_arg_if_set "--lora-model-dir" "$SD_LORA_DIR"
 add_arg_if_set "--type" "$SD_TYPE"
 add_arg_if_set "--rng" "$SD_RNG"
 add_arg_if_set "--threads" "$SD_THREADS"
+add_arg_if_set "--params-backend" "$SD_PARAMS_BACKEND"
+add_arg_if_set "--max-vram" "$SD_MAX_VRAM"
 
-SERVER_ARGS+=("--width" "${SD_DEFAULT_WIDTH:-1024}")
-SERVER_ARGS+=("--height" "${SD_DEFAULT_HEIGHT:-1024}")
-SERVER_ARGS+=("--steps" "${SD_DEFAULT_STEPS:-20}")
-SERVER_ARGS+=("--cfg-scale" "${SD_DEFAULT_CFG:-7.0}")
-SERVER_ARGS+=("--sampling-method" "${SD_DEFAULT_SAMPLER:-euler_a}")
-SERVER_ARGS+=("--scheduler" "${SD_DEFAULT_SCHEDULER:-discrete}")
+# Generation defaults are only forwarded when set, so sd-server picks its own
+# per-model defaults (e.g. euler for Flux/SD3/Wan, euler_a otherwise).
+add_arg_if_set "--width" "$SD_DEFAULT_WIDTH"
+add_arg_if_set "--height" "$SD_DEFAULT_HEIGHT"
+add_arg_if_set "--steps" "$SD_DEFAULT_STEPS"
+add_arg_if_set "--cfg-scale" "$SD_DEFAULT_CFG"
+add_arg_if_set "--sampling-method" "$SD_DEFAULT_SAMPLER"
+add_arg_if_set "--scheduler" "$SD_DEFAULT_SCHEDULER"
 add_arg_if_set "--flow-shift" "$SD_DEFAULT_FLOW_SHIFT"
+add_arg_if_set "--seed" "$SD_DEFAULT_SEED"
+# Only forwarded when set, so sd-server keeps choosing its own defaults.
+add_arg_if_set "--fps" "$SD_DEFAULT_FPS"
+add_arg_if_set "--video-frames" "$SD_DEFAULT_VIDEO_FRAMES"
 
 # Map each "1"-valued feature flag to its bare CLI switch.
 add_flag_if_enabled() {
@@ -237,7 +248,12 @@ add_flag_if_enabled "$SD_MMAP" "--mmap"
 add_flag_if_enabled "$SD_CLIP_ON_CPU" "--clip-on-cpu"
 add_flag_if_enabled "$SD_VAE_ON_CPU" "--vae-on-cpu"
 add_flag_if_enabled "$SD_CONTROL_NET_CPU" "--control-net-cpu"
-add_flag_if_enabled "${SD_DISABLE_AUTO_RESIZE_REF_IMAGE:-1}" "--disable-auto-resize-ref-image"
+add_flag_if_enabled "$SD_SAGE_ATTN" "--sage-attn"
+
+# Reference-image behaviour is configured through the upstream key-value list.
+# Use e.g. SD_DEFAULT_REF_IMAGE_ARGS=resize_before_vae=false to opt out of
+# resizing; sd-server no longer has a dedicated switch for it.
+add_arg_if_set "--ref-image-args" "$SD_DEFAULT_REF_IMAGE_ARGS"
 
 echo "Starting sd-server with arguments:"
 echo "${SERVER_ARGS[@]}"

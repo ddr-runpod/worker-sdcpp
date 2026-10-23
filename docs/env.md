@@ -34,6 +34,8 @@ This file documents all environment variables used to configure the stable-diffu
 | `SD_TYPE` | `--type` | Quantization type (f32, f16, q8_0, q4_0, etc.) |
 | `SD_RNG` | `--rng` | RNG backend (cuda, cpu) |
 | `SD_THREADS` | `--threads` | CPU threads (-1 = auto) |
+| `SD_PARAMS_BACKEND` | `--params-backend` | Where model weights are held, e.g. `diffusion=cpu,te=disk,vae=disk`. An explicit value disables automatic `--auto-fit` placement. Note: because the image sets `SD_OFFLOAD_CPU=1`, `*=cpu` is prepended to this value (`--offload-to-cpu` is a shorthand for `*=cpu`). Explicit per-module assignments still win over that `*=` default, so this is safe to combine; set `SD_OFFLOAD_CPU=0` for a clean value. |
+| `SD_MAX_VRAM` | `--max-vram` | Per-device budget in GiB for managed weights during automatic graph-cut execution, e.g. `6` or `cuda0=6,vulkan0=4`. `0` uses live free VRAM; a negative value reserves that much free VRAM. |
 
 ## RunPod HuggingFace Model Caching
 
@@ -57,29 +59,51 @@ A trailing `/` denotes a directory (the result gets a trailing `/`); otherwise i
 
 ## Generation Defaults
 
+None of these are set by default: each is forwarded as a server argument only
+when the variable is non-empty, leaving sd-server to apply its own defaults.
+
+These configure the **native `/sdcpp/v1/*` endpoints** (used in `loadbalancer`
+mode). They do **not** change the defaults of the A1111-compatible
+`/sdapi/v1/txt2img` and `/sdapi/v1/img2img` endpoints, which is what the
+`queue` handler always calls:
+
+| Field on the A1111 request | Default when omitted |
+|---|---|
+| `width` / `height` | `512`, per A1111 conventions |
+| `steps` / `cfg_scale` | Inherited from these variables, else sd-server's `20` / `7.0` |
+| `sampler_name` / `scheduler` | Model default |
+
+For `img2img`, an omitted `width`/`height` instead derives the canvas from the
+init image, so there is no way to express a server-side fallback there. Queue
+clients that want a specific size must send `width`/`height` in the job input.
+
 | Env Variable | CLI Arg | Description | Default   |
 |--------------|---------|-------------|-----------|
-| `SD_DEFAULT_WIDTH` | `--width` | Default image width | `1024`    |
-| `SD_DEFAULT_HEIGHT` | `--height` | Default image height | `1024`     |
-| `SD_DEFAULT_STEPS` | `--steps` | Default sampling steps | `20`      |
-| `SD_DEFAULT_CFG` | `--cfg-scale` | Default CFG scale | `7.0`     |
-| `SD_DEFAULT_SAMPLER` | `--sampling-method` | Default sampler | `euler_a` |
-| `SD_DEFAULT_SCHEDULER` | `--scheduler` | Default sigma scheduler | `discrete` |
+| `SD_DEFAULT_WIDTH` | `--width` | Image width. Only passed when set; sd-server otherwise resolves to `512`. Native endpoints only (see above). | (unset) |
+| `SD_DEFAULT_HEIGHT` | `--height` | Image height. Only passed when set; sd-server otherwise resolves to `512`. Native endpoints only (see above). | (unset) |
+| `SD_DEFAULT_STEPS` | `--steps` | Sampling steps. Only passed when set; sd-server otherwise uses `20`. | (unset) |
+| `SD_DEFAULT_CFG` | `--cfg-scale` | CFG scale. Only passed when set; sd-server otherwise uses `7.0`. | (unset) |
+| `SD_DEFAULT_SAMPLER` | `--sampling-method` | Sampler. Only passed when set; sd-server otherwise picks it per model (`lcm` for PiD, `euler` for DiT-family models such as Flux/SD3/Wan/Qwen-Image, `euler_a` otherwise). Native endpoints only (see above). | (unset) |
+| `SD_DEFAULT_SCHEDULER` | `--scheduler` | Sigma scheduler. Only passed when set; sd-server otherwise picks one from the model and sampler (e.g. `flux` for Flux, `flux2` for Flux2, `lcm` for LCM/TCD, `simple` for DDIM-trailing, `exponential` for EDM-v, else `discrete`). Native endpoints only (see above). | (unset) |
 | `SD_DEFAULT_FLOW_SHIFT` | `--flow-shift` | Shift value for Flow models (SD3.x, WAN). Only passed when set; `--flow-shift auto` is otherwise used by sd-server. | (unset) |
+| `SD_DEFAULT_SEED` | `--seed` | Default seed. Only passed when set; negative values request a random seed. | (unset) |
+| `SD_DEFAULT_FPS` | `--fps` | Default frame rate for video generation. Only passed when set, so sd-server keeps its own default. | (unset) |
+| `SD_DEFAULT_VIDEO_FRAMES` | `--video-frames` | Default number of video frames. Only passed when set, so sd-server keeps its own default. | (unset) |
+| `SD_DEFAULT_REF_IMAGE_ARGS` | `--ref-image-args` | Reference-image key-value args, e.g. `ref_image_size=max` or `resize_before_vae=false`. | (unset) |
 
 ## Feature Flags
 
-| Env Variable | CLI Flag | Description |
-|--------------|----------|-------------|
-| `SD_VAE_TILING` | `--vae-tiling` | Enable VAE tiling |
-| `SD_OFFLOAD_CPU` | `--offload-to-cpu` | CPU offload |
-| `SD_FLASH_ATTN` | `--fa` | Flash attention |
-| `SD_DIFFUSION_FLASH_ATTN` | `--diffusion-fa` | Flash attention in diffusion model only |
-| `SD_MMAP` | `--mmap` | Memory-map model weights |
-| `SD_CLIP_ON_CPU` | `--clip-on-cpu` | Keep CLIP encoders on CPU |
-| `SD_VAE_ON_CPU` | `--vae-on-cpu` | Keep VAE on CPU |
-| `SD_CONTROL_NET_CPU` | `--control-net-cpu` | Keep ControlNet on CPU |
-| `SD_DISABLE_AUTO_RESIZE_REF_IMAGE` | `--disable-auto-resize-ref-image` | Disable auto-resizing reference images | `1` |
+| Env Variable | CLI Flag | Description | Default |
+|--------------|----------|-------------|---------|
+| `SD_VAE_TILING` | `--vae-tiling` | Enable VAE tiling | (off) |
+| `SD_OFFLOAD_CPU` | `--offload-to-cpu` | CPU offload. **On by default in the image** (`Dockerfile` sets `SD_OFFLOAD_CPU=1`). Set to `0` to disable. | `1` |
+| `SD_FLASH_ATTN` | `--fa` | Flash attention. **On by default in the image** (`Dockerfile` sets `SD_FLASH_ATTN=1`). Deprecated upstream in favour of `--flash-attn on`. | `1` |
+| `SD_DIFFUSION_FLASH_ATTN` | `--diffusion-fa` | Flash attention in diffusion model only. Deprecated upstream in favour of `--flash-attn off,diffusion=on`. | (off) |
+| `SD_MMAP` | `--mmap` | Memory-map model weights | (off) |
+| `SD_CLIP_ON_CPU` | `--clip-on-cpu` | Keep CLIP encoders on CPU. Deprecated upstream in favour of `--backend te=cpu`. | (off) |
+| `SD_VAE_ON_CPU` | `--vae-on-cpu` | Keep VAE on CPU. Deprecated upstream in favour of `--backend vae=cpu`. | (off) |
+| `SD_CONTROL_NET_CPU` | `--control-net-cpu` | Keep ControlNet on CPU. Deprecated upstream in favour of `--backend controlnet=cpu`. | (off) |
+| `SD_SAGE_ATTN` | `--sage-attn` | Use native CUDA SageAttention in the diffusion model, with flash/default attention fallback | (off) |
 
 ## Handler Configuration
 
@@ -95,5 +119,8 @@ A trailing `/` denotes a directory (the result gets a trailing `/`); otherwise i
 |--------------|---------|-------------|
 | `ENDPOINT_MODE` | `queue` | Selects which RunPod serverless endpoint type the worker runs as. `queue` (default) starts the `runpod` SDK handler that pulls jobs from the RunPod queue. `loadbalancer` starts a FastAPI reverse-proxy on `$PORT` (default 80) that exposes the A1111/OpenAI endpoints directly to the RunPod load balancer. |
 | `PORT` | `80` | Listen port for the load-balancing FastAPI app. Ignored in `queue` mode. Must be added to the endpoint's env vars and to **Expose HTTP Ports** if changed from 80. |
-| `PORT_HEALTH` | `=PORT` | Port the RunPod load balancer probes `/ping` on. Defaults to `PORT`, so a single FastAPI process serves both traffic and the health check. Ignored in `queue` mode. |
+| `PORT_HEALTH` | `=PORT` | **Read by the RunPod platform, not by our container.** Sets the port the load balancer probes `/ping` on. Leave unset so it tracks `PORT`: one uvicorn process then serves both traffic and the health check. Only set it to a different port if you also run a separate health server there — otherwise the probe targets a closed port, the worker never reports healthy, and requests hang until the ~2 min "no worker available" timeout. Ignored in `queue` mode. |
+| `HEALTH_CHECK_PATH` | `/ping` | **Read by the RunPod platform.** Path the load balancer probes. Our app already serves `/ping`, so leave it unset. |
+| `SD_READY_RETRIES` | `150` | How many times `startup.sh` polls sd-server's `/sdapi/v1/sd-models` before giving up. With the default interval this is a 5 minute budget for cold starts. |
+| `SD_READY_INTERVAL` | `2` | Seconds to sleep between readiness polls in `startup.sh`. |
 | `LOG_LEVEL` | `info` | uvicorn log level (`critical`, `error`, `warning`, `info`, `debug`, `trace`). Ignored in `queue` mode. |

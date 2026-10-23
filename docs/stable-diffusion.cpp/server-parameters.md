@@ -69,10 +69,12 @@ This document lists all parameters that can be passed to the `sd-server` binary 
 | `--control-net-cpu` | Keep ControlNet in CPU (for low VRAM) |
 | `--clip-on-cpu` | Keep CLIP in CPU (for low VRAM) |
 | `--vae-on-cpu` | Keep VAE in CPU (for low VRAM) |
-| `--fa` | Use flash attention |
-| `--diffusion-fa` | Use flash attention in diffusion model only |
-| `--diffusion-conv-direct` | Use `ggml_conv2d_direct` in diffusion model |
-| `--vae-conv-direct` | Use `ggml_conv2d_direct` in VAE model |
+| `--fa` | Deprecated; use `--flash-attn on` |
+| `--diffusion-fa` | Deprecated; use `--flash-attn off,diffusion=on` |
+| `--flash-attn` | `on`/`off`/`auto` or module assignments, e.g. `auto,te=off,vae=on` (default: `auto`) |
+| `--sage-attn` | Use native CUDA SageAttention in the diffusion model, with flash/default attention fallback |
+| `--diffusion-conv-direct` | Deprecated; use `--conv-direct auto,diffusion=on,controlnet=on` |
+| `--vae-conv-direct` | Deprecated; use `--conv-direct auto,vae=on` |
 | `--circular` | Enable circular padding for convolutions |
 | `--circularx` | Enable circular RoPE wrapping on x-axis (width) only |
 | `--circulary` | Enable circular RoPE wrapping on y-axis (height) only |
@@ -87,6 +89,18 @@ This document lists all parameters that can be passed to the `sd-server` binary 
 | `--prediction` | Prediction type override: `eps`, `v`, `edm_v`, `sd3_flow`, `flux_flow`, `flux2_flow` |
 | `--lora-apply-mode` | LoRA application mode: `auto`, `immediately`, `at_runtime` (default: `auto`) |
 | `--tensor-type-rules` | Weight type per tensor pattern (e.g., `^vae\.=f16,model\.=q8_0`) |
+
+### Backend and Memory Placement
+
+| Long | Description |
+|------|-------------|
+| `--backend` | Runtime backend assignment, e.g. `cpu` or `clip=cpu,vae=cuda0,diffusion=vulkan0` |
+| `--params-backend` | Where weights are held, e.g. `disk`, `cpu`, or `diffusion=disk,te=cpu`. An explicit value disables automatic `--auto-fit` placement. |
+| `--split-mode` | Weight distribution for modules on multiple devices: `layer` (default) or `row`, or per-module assignments e.g. `diffusion=row,te=layer` |
+| `--max-vram` | Per-device budget in GiB for managed weights and runner buffers during automatic graph-cut execution, e.g. `6` or `cuda0=6,vulkan0=4`. `0` uses live free VRAM; a negative value reserves that much free VRAM (default: `0`) |
+| `--auto-fit` | `on`/`off` (default: `on`). Places weights across GPU/RAM/disk by available memory; disabled by an explicit `--params-backend` |
+| `--eager-load` | Load all params into the params backend at model-load time instead of lazily on first use |
+| `--rpc-servers` | Comma-separated `host:port` list of RPC servers to offload to |
 
 ## Default Generation Options
 
@@ -139,8 +153,8 @@ This document lists all parameters that can be passed to the `sd-server` binary 
 | | `--control-video` | Path to control video frames directory | |
 | | `--strength` | Denoising strength for img2img | `0.75` |
 | | `--control-strength` | ControlNet strength | `0.9` |
-| | `--increase-ref-index` | Auto-increment reference image indices | `false` |
-| | `--disable-auto-resize-ref-image` | Disable auto-resize of reference images | `false` |
+| | `--increase-ref-index` | Auto-increment reference image indices (deprecated; use `--ref-image-args "ref_index_mode=increase"`) | `false` |
+| | `--ref-image-args` | Reference-image key-value list, e.g. `resize_before_vae=false` or `ref_image_size=max` (empty = auto-detect from model weights) | |
 
 ### PhotoMaker Options
 
@@ -301,8 +315,15 @@ For container deployment, these parameters map to environment variables:
 | `--sampling-method` | `SD_DEFAULT_SAMPLER` |
 | `--scheduler` | `SD_DEFAULT_SCHEDULER` |
 | `--flow-shift` | `SD_DEFAULT_FLOW_SHIFT` |
+| `--seed` | `SD_DEFAULT_SEED` |
+| `--fps` | `SD_DEFAULT_FPS` |
+| `--video-frames` | `SD_DEFAULT_VIDEO_FRAMES` |
+| `--ref-image-args` | `SD_DEFAULT_REF_IMAGE_ARGS` |
+| `--params-backend` | `SD_PARAMS_BACKEND` |
+| `--max-vram` | `SD_MAX_VRAM` |
 | `--vae-tiling` | `SD_VAE_TILING` |
 | `--offload-to-cpu` | `SD_OFFLOAD_CPU` |
 | `--fa` | `SD_FLASH_ATTN` |
 | `--diffusion-fa` | `SD_DIFFUSION_FLASH_ATTN` |
+| `--sage-attn` | `SD_SAGE_ATTN` |
 | `--mmap` | `SD_MMAP` |
