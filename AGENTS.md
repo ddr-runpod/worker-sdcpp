@@ -50,11 +50,12 @@ Request flow:
 
 | Argument | Default | Description |
 |----------|---------|-------------|
-| `SD_CPP_COMMIT` | `95ff762` | Git commit hash of stable-diffusion.cpp for reproducible builds |
+| `SD_CPP_COMMIT` | Pinned in the Dockerfile | Git commit hash of stable-diffusion.cpp for reproducible builds |
 
 Example:
 ```bash
-docker build --build-arg SD_CPP_COMMIT=95ff762 -t worker-sdcpp:latest .
+docker build -t worker-sdcpp:latest .
+# Override the pinned commit with --build-arg SD_CPP_COMMIT=<commit-sha>
 ```
 
 ## Code Conventions

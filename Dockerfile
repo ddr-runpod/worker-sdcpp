@@ -18,7 +18,7 @@ ARG SD_CPP_REPO=https://github.com/leejet/stable-diffusion.cpp.git
 
 # Upstream master commit at the time of writing. Pinned by SHA rather than branch
 # name so upstream changes cannot silently change the build.
-ARG SD_CPP_COMMIT=95ff76230889898e1bf40058ba272a3699b50dc6
+ARG SD_CPP_COMMIT=e41fbcf455e0fbb45e08bd535b00d6cba865e921
 
 # Keep apt non-interactive during Docker builds.
 ENV DEBIAN_FRONTEND=noninteractive

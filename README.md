@@ -26,9 +26,9 @@ A RunPod serverless worker using [stable-diffusion.cpp](https://github.com/leeje
 git clone https://github.com/ddr-runpod/worker-sdcpp.git
 cd worker-sdcpp
 
-# Build with specific stable-diffusion.cpp commit (optional)
+# Build (uses the stable-diffusion.cpp commit pinned in the Dockerfile;
+# override with --build-arg SD_CPP_COMMIT=<commit-sha>)
 docker build --platform linux/amd64 \
-  --build-arg SD_CPP_COMMIT=95ff76230889898e1bf40058ba272a3699b50dc6 \
   -t ddr-runpod/worker-sdcpp:latest .
 
 docker push ddr-runpod/worker-sdcpp:latest
